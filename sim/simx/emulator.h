@@ -30,7 +30,7 @@ class instr_trace_t;
 
 class Emulator {
 public:
-  Emulator(const Arch &arch,
+  Emulator(Arch &arch,
            const DCRS &dcrs,
            Core* core);
 
@@ -69,7 +69,7 @@ private:
   };
 
   struct warp_t {
-    warp_t(const Arch& arch);
+    warp_t(Arch& arch);
     void clear(uint64_t startup_addr);
 
     Word                              PC;
@@ -113,7 +113,7 @@ private:
 
   void update_fcrs(uint32_t fflags, uint32_t tid, uint32_t wid);
 
-  const Arch& arch_;
+  Arch& arch_;
   const DCRS& dcrs_;
   Core*       core_;
   std::vector<warp_t> warps_;

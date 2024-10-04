@@ -31,7 +31,7 @@ public:
     uint64_t mem_latency;
   };
 
-  ProcessorImpl(const Arch& arch);
+  ProcessorImpl(Arch& arch);
   ~ProcessorImpl();
 
   void attach_ram(RAM* mem);
@@ -50,7 +50,7 @@ private:
 
   void reset();
 
-  const Arch& arch_;
+  Arch& arch_;
   std::vector<std::shared_ptr<Cluster>> clusters_;
   DCRS dcrs_;
   MemSim::Ptr memsim_;

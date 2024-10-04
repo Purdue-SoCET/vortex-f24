@@ -28,7 +28,7 @@ class SATP_t;
 
 class Processor {
 public:
-  Processor(const Arch& arch);
+  Processor(Arch& arch);
   ~Processor();
 
   void attach_ram(RAM* mem);

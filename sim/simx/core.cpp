@@ -28,7 +28,7 @@ using namespace vortex;
 Core::Core(const SimContext& ctx,
            uint32_t core_id,
            Socket* socket,
-           const Arch &arch,
+           Arch &arch,
            const DCRS &dcrs)
   : SimObject(ctx, "core")
   , icache_req_ports(1, this)

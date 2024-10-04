@@ -41,7 +41,7 @@ Emulator::ipdom_entry_t::ipdom_entry_t(const ThreadMask &tmask)
   , fallthrough(true)
 {}
 
-Emulator::warp_t::warp_t(const Arch& arch)
+Emulator::warp_t::warp_t(Arch& arch)
   : ireg_file(arch.num_threads(), std::vector<Word>(MAX_NUM_REGS))
   , freg_file(arch.num_threads(), std::vector<uint64_t>(MAX_NUM_REGS))
   , uuid(0)
@@ -79,7 +79,7 @@ void Emulator::warp_t::clear(uint64_t startup_addr) {
 
 ///////////////////////////////////////////////////////////////////////////////
 
-Emulator::Emulator(const Arch &arch, const DCRS &dcrs, Core* core)
+Emulator::Emulator(Arch &arch, const DCRS &dcrs, Core* core)
     : arch_(arch)
     , dcrs_(dcrs)
     , core_(core)

@@ -41,7 +41,7 @@ public:
   Socket(const SimContext& ctx, 
          uint32_t socket_id,
          Cluster* cluster, 
-         const Arch &arch, 
+         Arch &arch, 
          const DCRS &dcrs);
 
   ~Socket();
@@ -80,6 +80,7 @@ private:
   std::vector<Core::Ptr>  cores_;
   CacheCluster::Ptr       icaches_;
   CacheCluster::Ptr       dcaches_;
+  uint16_t                prev_num_threads;
 };
 
 } // namespace vortex

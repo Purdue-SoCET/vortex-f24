@@ -23,7 +23,7 @@ class Dispatcher : public SimObject<Dispatcher> {
 public:
 	std::vector<SimPort<instr_trace_t*>> Outputs;
 
-	Dispatcher(const SimContext& ctx, const Arch& arch, uint32_t buf_size, uint32_t block_size, uint32_t num_lanes) 
+	Dispatcher(const SimContext& ctx, Arch& arch, uint32_t buf_size, uint32_t block_size, uint32_t num_lanes) 
 		: SimObject<Dispatcher>(ctx, "Dispatcher") 
 		, Outputs(ISSUE_WIDTH, this)
 		, Inputs_(ISSUE_WIDTH, this)
@@ -126,7 +126,7 @@ public:
 
 private:
 	std::vector<SimPort<instr_trace_t*>> Inputs_;
-	const Arch& arch_;
+	Arch& arch_;
 	std::vector<std::queue<instr_trace_t*>> queues_;
 	uint32_t buf_size_;
 	uint32_t block_size_;

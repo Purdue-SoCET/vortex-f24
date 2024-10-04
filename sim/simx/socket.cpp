@@ -19,7 +19,7 @@ using namespace vortex;
 Socket::Socket(const SimContext& ctx,
                 uint32_t socket_id,
                 Cluster* cluster,
-                const Arch &arch,
+                Arch &arch,
                 const DCRS &dcrs)
   : SimObject(ctx, "socket")
   , icache_mem_req_port(this)
@@ -75,7 +75,7 @@ Socket::Socket(const SimContext& ctx,
 
   // create cores
 
-  for (uint32_t i = 0; i < cores_per_socket; ++i) {
+  for (uint32_t i = 0; i < cores_per_socket/2; ++i) {
     uint32_t core_id = socket_id * cores_per_socket + i;
     cores_.at(i) = Core::Create(core_id, this, arch, dcrs);
 
@@ -87,6 +87,26 @@ Socket::Socket(const SimContext& ctx,
       dcaches_->CoreRspPorts.at(i).at(j).bind(&cores_.at(i)->dcache_rsp_ports.at(j));
     }
   }
+
+  this->prev_num_threads = arch.num_threads();
+  arch.num_threads_ = 1;
+
+  
+
+  for (uint32_t i = cores_per_socket/2; i < cores_per_socket; ++i) {
+    uint32_t core_id = socket_id * cores_per_socket + i;
+    cores_.at(i) = Core::Create(core_id, this, arch, dcrs);
+
+    cores_.at(i)->icache_req_ports.at(0).bind(&icaches_->CoreReqPorts.at(i).at(0));
+    icaches_->CoreRspPorts.at(i).at(0).bind(&cores_.at(i)->icache_rsp_ports.at(0));
+
+    for (uint32_t j = 0; j < DCACHE_NUM_REQS; ++j) {
+      cores_.at(i)->dcache_req_ports.at(j).bind(&dcaches_->CoreReqPorts.at(i).at(j));
+      dcaches_->CoreRspPorts.at(i).at(j).bind(&cores_.at(i)->dcache_rsp_ports.at(j));
+    }
+  }
+
+  arch.num_threads_ = this->prev_num_threads;
 }
 
 Socket::~Socket() {
