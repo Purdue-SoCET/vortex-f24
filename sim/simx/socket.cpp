@@ -30,7 +30,8 @@ Socket::Socket(const SimContext& ctx,
   , cluster_(cluster)
   , cores_(arch.socket_size())
 {
-  auto cores_per_socket = cores_.size();
+  // 1 cores_per_socket =  1 SIMT and 1 scalar core
+  auto cores_per_socket = 2 * cores_.size();
 
   char sname[100];
   snprintf(sname, 100, "socket%d-icaches", socket_id);
@@ -75,6 +76,7 @@ Socket::Socket(const SimContext& ctx,
 
   // create cores
 
+  // Create the SIMT cores
   for (uint32_t i = 0; i < cores_per_socket/2; ++i) {
     uint32_t core_id = socket_id * cores_per_socket + i;
     cores_.at(i) = Core::Create(core_id, this, arch, dcrs);
@@ -88,14 +90,11 @@ Socket::Socket(const SimContext& ctx,
     }
   }
 
-  this->prev_num_threads = arch.num_threads();
-  arch.num_threads_ = 1;
-
-  
-
+  // Create the scalar cores
+  Arch scalar_arch(1, 1, cores_.size()); //Scalar core arch is 1 thread, 1 warp, and however many cores
   for (uint32_t i = cores_per_socket/2; i < cores_per_socket; ++i) {
-    uint32_t core_id = socket_id * cores_per_socket + i;
-    cores_.at(i) = Core::Create(core_id, this, arch, dcrs);
+    uint32_t scalar_core_id = socket_id * cores_per_socket + i;
+    cores_.at(i) = ScalarCore::Create(scalar_core_id, this, scalar_arch, dcrs);
 
     cores_.at(i)->icache_req_ports.at(0).bind(&icaches_->CoreReqPorts.at(i).at(0));
     icaches_->CoreRspPorts.at(i).at(0).bind(&cores_.at(i)->icache_rsp_ports.at(0));
@@ -106,7 +105,6 @@ Socket::Socket(const SimContext& ctx,
     }
   }
 
-  arch.num_threads_ = this->prev_num_threads;
 }
 
 Socket::~Socket() {

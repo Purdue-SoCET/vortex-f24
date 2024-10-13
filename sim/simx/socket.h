@@ -20,6 +20,7 @@
 #include "local_mem.h"
 #include "core.h"
 #include "constants.h"
+#include "scalar_core.h"
 
 namespace vortex {
 
