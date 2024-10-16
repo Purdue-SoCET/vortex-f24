@@ -2,7 +2,7 @@ ROOT_DIR := $(realpath ..)
 include $(ROOT_DIR)/config.mk
 
 # all: stub rtlsim simx opae xrt
-all: stub simx opae xrt
+all: stub simx
 
 vm: stub simx
 
@@ -12,8 +12,8 @@ stub:
 simx:
 	$(MAKE) -C simx
 
-# rtlsim:
-# 	$(MAKE) -C rtlsim
+rtlsim:
+	$(MAKE) -C rtlsim
 
 opae:
 	$(MAKE) -C opae
@@ -24,7 +24,7 @@ xrt:
 clean:
 	$(MAKE) -C stub clean
 	$(MAKE) -C simx clean
-#	$(MAKE) -C rtlsim clean
+	$(MAKE) -C rtlsim clean
 	$(MAKE) -C opae clean
 	$(MAKE) -C xrt clean
 

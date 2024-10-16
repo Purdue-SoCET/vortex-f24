@@ -3,5 +3,9 @@
 *.cache
 *.code-workspace
 /tools/*
+
+# Only working on sim
 runtime/
 tests/
+kernel/
+hw/
