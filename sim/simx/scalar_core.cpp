@@ -38,8 +38,8 @@ ScalarCore::ScalarCore(const SimContext& ctx,
   , core_id_(core_id)
   , socket_(socket)
   , arch_(arch)
-  , emulator_(arch, dcrs, this)
-  , ibuffers_(arch.num_warps(), IBUF_SIZE) //Only need 1 ibuffer bc 1 warp
+  , emulator_(arch, dcrs, this) //Initialize emulator object
+  , ibuffers_(arch.num_warps(), IBUF_SIZE) 
   , scoreboard_(arch_)
   , operands_(ISSUE_WIDTH)
   , dispatchers_((uint32_t)FUType::Count)

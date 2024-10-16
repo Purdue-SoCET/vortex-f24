@@ -14,6 +14,8 @@
 #include "socket.h"
 #include "cluster.h"
 
+#define SCALAR_ID_OFFSET 10
+
 using namespace vortex;
 
 Socket::Socket(const SimContext& ctx,
@@ -29,9 +31,9 @@ Socket::Socket(const SimContext& ctx,
   , socket_id_(socket_id)
   , cluster_(cluster)
   , cores_(arch.socket_size())
+  , scalarcores_(arch.socket_size())
 {
-  // 1 cores_per_socket =  1 SIMT and 1 scalar core
-  auto cores_per_socket = 2 * cores_.size();
+  auto cores_per_socket = cores_.size();
 
   char sname[100];
   snprintf(sname, 100, "socket%d-icaches", socket_id);
@@ -76,8 +78,12 @@ Socket::Socket(const SimContext& ctx,
 
   // create cores
 
+  // Ex: I set cores = 1
+  // 1 SIMT core is created in the first loop
+  // 1 scalar core is created in the 2nd loop. 
+
   // Create the SIMT cores
-  for (uint32_t i = 0; i < cores_per_socket/2; ++i) {
+  for (uint32_t i = 0; i < cores_per_socket; ++i) {
     uint32_t core_id = socket_id * cores_per_socket + i;
     cores_.at(i) = Core::Create(core_id, this, arch, dcrs);
 
@@ -91,20 +97,20 @@ Socket::Socket(const SimContext& ctx,
   }
 
   // Create the scalar cores
+  // ID is an offset from its SIMT pair. Make sure they don't conflict at large # of cores. 
   Arch scalar_arch(1, 1, cores_.size()); //Scalar core arch is 1 thread, 1 warp, and however many cores
-  for (uint32_t i = cores_per_socket/2; i < cores_per_socket; ++i) {
-    uint32_t scalar_core_id = socket_id * cores_per_socket + i;
-    cores_.at(i) = ScalarCore::Create(scalar_core_id, this, scalar_arch, dcrs);
+  for (uint32_t i = 0; i < cores_per_socket; ++i) {
+    uint32_t scalar_core_id = socket_id * cores_per_socket + i + SCALAR_ID_OFFSET;
+    scalarcores_.at(i) = ScalarCore::Create(scalar_core_id, this, scalar_arch, dcrs);
 
-    cores_.at(i)->icache_req_ports.at(0).bind(&icaches_->CoreReqPorts.at(i).at(0));
-    icaches_->CoreRspPorts.at(i).at(0).bind(&cores_.at(i)->icache_rsp_ports.at(0));
+    scalarcores_.at(i)->icache_req_ports.at(0).bind(&icaches_->CoreReqPorts.at(i).at(0));
+    icaches_->CoreRspPorts.at(i).at(0).bind(&scalarcores_.at(i)->icache_rsp_ports.at(0));
 
     for (uint32_t j = 0; j < DCACHE_NUM_REQS; ++j) {
-      cores_.at(i)->dcache_req_ports.at(j).bind(&dcaches_->CoreReqPorts.at(i).at(j));
+      scalarcores_.at(i)->dcache_req_ports.at(j).bind(&dcaches_->CoreReqPorts.at(i).at(j));
       dcaches_->CoreRspPorts.at(i).at(j).bind(&cores_.at(i)->dcache_rsp_ports.at(j));
     }
   }
-
 }
 
 Socket::~Socket() {

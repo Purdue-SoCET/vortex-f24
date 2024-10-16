@@ -19,8 +19,9 @@
 #include "cache_cluster.h"
 #include "local_mem.h"
 #include "core.h"
-#include "constants.h"
 #include "scalar_core.h"
+#include "constants.h"
+
 
 namespace vortex {
 
@@ -79,6 +80,7 @@ private:
   uint32_t                socket_id_;
   Cluster*                cluster_;
   std::vector<Core::Ptr>  cores_;
+  std::vector<ScalarCore::Ptr>  scalarcores_; 
   CacheCluster::Ptr       icaches_;
   CacheCluster::Ptr       dcaches_;
   uint16_t                prev_num_threads;
