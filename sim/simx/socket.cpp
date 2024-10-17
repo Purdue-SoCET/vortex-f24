@@ -20,6 +20,7 @@ Socket::Socket(const SimContext& ctx,
                 uint32_t socket_id,
                 Cluster* cluster,
                 Arch &arch,
+                Arch_SCLR &arch_sclr,
                 const DCRS &dcrs)
   : SimObject(ctx, "socket")
   , icache_mem_req_port(this)
@@ -29,8 +30,9 @@ Socket::Socket(const SimContext& ctx,
   , socket_id_(socket_id)
   , cluster_(cluster)
   , cores_(arch.socket_size())
+  // , cores_sclr_(arch.socket_size() - (arch.socket_size()/2))
 {
-  auto cores_per_socket = cores_.size();
+  auto cores_per_socket = cores_.size(); //+ cores_sclr_.size();
 
   char sname[100];
   snprintf(sname, 100, "socket%d-icaches", socket_id);
@@ -88,14 +90,9 @@ Socket::Socket(const SimContext& ctx,
     }
   }
 
-  this->prev_num_threads = arch.num_threads();
-  arch.num_threads_ = 1;
-
-  
-
   for (uint32_t i = cores_per_socket/2; i < cores_per_socket; ++i) {
     uint32_t core_id = socket_id * cores_per_socket + i;
-    cores_.at(i) = Core::Create(core_id, this, arch, dcrs);
+    cores_.at(i) = Core::Create(core_id, this, arch_sclr, dcrs);
 
     cores_.at(i)->icache_req_ports.at(0).bind(&icaches_->CoreReqPorts.at(i).at(0));
     icaches_->CoreRspPorts.at(i).at(0).bind(&cores_.at(i)->icache_rsp_ports.at(0));
@@ -105,8 +102,6 @@ Socket::Socket(const SimContext& ctx,
       dcaches_->CoreRspPorts.at(i).at(j).bind(&cores_.at(i)->dcache_rsp_ports.at(j));
     }
   }
-
-  arch.num_threads_ = this->prev_num_threads;
 }
 
 Socket::~Socket() {
@@ -125,6 +120,10 @@ void Socket::attach_ram(RAM* ram) {
   for (auto core : cores_) {
     core->attach_ram(ram);
   }
+
+  // for (auto core1 : cores_sclr_) {
+  //   core1->attach_ram(ram);
+  // }
 }
 
 #ifdef VM_ENABLE
@@ -132,6 +131,10 @@ void Socket::set_satp(uint64_t satp) {
   for (auto core : cores_) {
     core->set_satp(satp);
   }
+
+  // for (auto core1 : cores_sclr_) {
+  //   core1->set_satp(satp);
+  // }
 }
 #endif
 
@@ -140,6 +143,11 @@ bool Socket::running() const {
     if (core->running())
       return true;
   }
+
+  // for (auto& core1 : cores_sclr_) {
+  //   if (core1->running())
+  //     return true;
+  // }
   return false;
 }
 
@@ -148,15 +156,25 @@ int Socket::get_exitcode() const {
   for (auto& core : cores_) {
     exitcode |= core->get_exitcode();
   }
+
+  // for (auto& core1 : cores_sclr_) {
+  //   exitcode |= core1->get_exitcode();
+  // }
   return exitcode;
 }
 
 void Socket::barrier(uint32_t bar_id, uint32_t count, uint32_t core_id) {
-  cluster_->barrier(bar_id, count, socket_id_ * cores_.size() + core_id);
+  cluster_->barrier(bar_id, count, socket_id_ * (cores_.size()) + core_id); //cores_.size()+cores_sclr_.size()
 }
 
 void Socket::resume(uint32_t core_index) {
-  cores_.at(core_index)->resume(-1);
+  // if(core_index <= cores_.size()-1){
+    cores_.at(core_index)->resume(-1);
+  // }
+
+  // else {
+  //   cores_sclr_.at(core_index)->resume(-1);
+  // }
 }
 
 Socket::PerfStats Socket::perf_stats() const {

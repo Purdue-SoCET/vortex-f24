@@ -150,7 +150,7 @@ Core::Core(const SimContext& ctx,
 }
 
 Core::~Core() {
-  //--
+  std::cout << "Core ID: " << this->core_id_ << " has " << this->arch_.num_threads() << " number of threads." << std::endl;
 }
 
 void Core::reset() {

@@ -12,6 +12,7 @@
 // limitations under the License.
 
 #include "types.h"
+#pragma once
 
 namespace vortex {
 
