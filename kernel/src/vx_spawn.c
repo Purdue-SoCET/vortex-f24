@@ -14,7 +14,6 @@
 #include <vx_spawn.h>
 #include <vx_intrinsics.h>
 #include <vx_print.h>
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -177,6 +176,7 @@ int vx_spawn_threads(uint32_t dimension,
   uint32_t threads_per_warp = vx_num_threads();
   uint32_t core_id = vx_core_id();
 
+
   // check group size
   uint32_t threads_per_core = warps_per_core * threads_per_warp;
   if (threads_per_core < group_size) {
@@ -290,6 +290,7 @@ int vx_spawn_threads(uint32_t dimension,
 
     if (active_warps >= 1) {
       // execute callback on other warps
+//      vx_printf("Horray\n");
       vx_wspawn(active_warps, process_threads_stub);
 
       // activate all threads

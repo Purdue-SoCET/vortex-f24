@@ -16,6 +16,7 @@
 #include <simobject.h>
 #include "dcrs.h"
 #include "arch.h"
+#include "arch_sclr.h"
 #include "cache_cluster.h"
 #include "local_mem.h"
 #include "core.h"
@@ -39,6 +40,7 @@ public:
           uint32_t cluster_id,
           ProcessorImpl* processor, 
           Arch &arch, 
+          Arch_SCLR &arch_sclr, 
           const DCRS &dcrs);
 
   ~Cluster();

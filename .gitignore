@@ -5,7 +5,7 @@
 /tools/*
 
 # Only working on sim
-/runtime/*
-/tests/*
-/kernel/*
-/hw/*
+# /runtime/*
+# /tests/*
+# /kernel/*
+# /hw/*

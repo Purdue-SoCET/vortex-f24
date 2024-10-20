@@ -14,6 +14,7 @@
 #pragma once
 
 #include "types.h"
+#pragma once
 
 namespace vortex {
 

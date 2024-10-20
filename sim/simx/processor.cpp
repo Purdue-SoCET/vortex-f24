@@ -16,8 +16,9 @@
 
 using namespace vortex;
 
-ProcessorImpl::ProcessorImpl(Arch& arch)
+ProcessorImpl::ProcessorImpl(Arch& arch, Arch_SCLR& arch_sclr)
   : arch_(arch)
+  , arch_sclr_(arch_sclr)
   , clusters_(arch.num_clusters())
 {
   SimPlatform::instance().initialize();
@@ -54,7 +55,7 @@ ProcessorImpl::ProcessorImpl(Arch& arch)
 
   // create clusters
   for (uint32_t i = 0; i < arch.num_clusters(); ++i) {
-    clusters_.at(i) = Cluster::Create(i, this, arch, dcrs_);
+    clusters_.at(i) = Cluster::Create(i, this, arch, arch_sclr, dcrs_);
     // connect L3 core ports
     clusters_.at(i)->mem_req_port.bind(&l3cache_->CoreReqPorts.at(i));
     l3cache_->CoreRspPorts.at(i).bind(&clusters_.at(i)->mem_rsp_port);
@@ -148,8 +149,8 @@ ProcessorImpl::PerfStats ProcessorImpl::perf_stats() const {
 
 ///////////////////////////////////////////////////////////////////////////////
 
-Processor::Processor(Arch& arch)
-  : impl_(new ProcessorImpl(arch))
+Processor::Processor(Arch& arch, Arch_SCLR& arch_sclr)
+  : impl_(new ProcessorImpl(arch, arch_sclr))
 {
 #ifdef VM_ENABLE
   satp_ = NULL;

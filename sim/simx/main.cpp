@@ -83,11 +83,13 @@ int main(int argc, char **argv) {
     // create processor configuation
     Arch arch(num_threads, num_warps, num_cores);
 
+    Arch_SCLR arch_sclr(num_warps, num_cores);
+
     // create memory module
     RAM ram(0, MEM_PAGE_SIZE);
 
     // create processor
-    Processor processor(arch);
+    Processor processor(arch, arch_sclr);
 
     // attach memory module
     processor.attach_ram(&ram);

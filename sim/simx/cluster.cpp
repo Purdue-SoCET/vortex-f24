@@ -19,6 +19,7 @@ Cluster::Cluster(const SimContext& ctx,
                  uint32_t cluster_id,
                  ProcessorImpl* processor,
                  Arch &arch,
+                 Arch_SCLR &arch_sclr,
                  const DCRS &dcrs)
   : SimObject(ctx, "cluster")
   , mem_req_port(this)
@@ -46,6 +47,7 @@ Cluster::Cluster(const SimContext& ctx,
     auto socket = Socket::Create(socket_id,
                                  this,
                                  arch,
+                                 arch_sclr,
                                  dcrs);
 
     socket->icache_mem_req_port.bind(&icache_switch->ReqIn.at(i));

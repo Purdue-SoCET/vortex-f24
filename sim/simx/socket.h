@@ -18,9 +18,11 @@
 #include <simobject.h>
 #include "dcrs.h"
 #include "arch.h"
+#include "arch_sclr.h"
 #include "cache_cluster.h"
 #include "local_mem.h"
 #include "core.h"
+// #include "core_sclr.h"
 #include "constants.h"
 
 
@@ -44,7 +46,8 @@ public:
   Socket(const SimContext& ctx, 
          uint32_t socket_id,
          Cluster* cluster, 
-         Arch &arch, 
+         Arch &arch,
+         Arch_SCLR &arch_sclr, 
          const DCRS &dcrs);
 
   ~Socket();
@@ -78,13 +81,13 @@ public:
   PerfStats perf_stats() const;
   
 private:
-  uint32_t                socket_id_;
-  Cluster*                cluster_;
-  std::vector<Core::Ptr>  cores_;
-  std::vector<Core::Ptr>  scalarcores_; 
-  CacheCluster::Ptr       icaches_;
-  CacheCluster::Ptr       dcaches_;
-  uint16_t                prev_num_threads;
+  uint32_t                      socket_id_;
+  Cluster*                      cluster_;
+  std::vector<Core::Ptr>        cores_;
+  // std::vector<Core_SCLR::Ptr>   cores_sclr_;
+  CacheCluster::Ptr             icaches_;
+  CacheCluster::Ptr             dcaches_;
+  uint16_t                      prev_num_threads;
 };
 
 } // namespace vortex
