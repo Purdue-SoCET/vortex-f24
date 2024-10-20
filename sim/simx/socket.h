@@ -11,6 +11,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// #include "scalar_core.h"
+
 #pragma once
 
 #include <simobject.h>
@@ -19,7 +21,6 @@
 #include "cache_cluster.h"
 #include "local_mem.h"
 #include "core.h"
-#include "scalar_core.h"
 #include "constants.h"
 
 
@@ -80,7 +81,7 @@ private:
   uint32_t                socket_id_;
   Cluster*                cluster_;
   std::vector<Core::Ptr>  cores_;
-  std::vector<ScalarCore::Ptr>  scalarcores_; 
+  std::vector<Core::Ptr>  scalarcores_; 
   CacheCluster::Ptr       icaches_;
   CacheCluster::Ptr       dcaches_;
   uint16_t                prev_num_threads;

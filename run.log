@@ -1,7 +1,7 @@
 make: Entering directory '/home/ecegridfs/a/socet39/socet/vortex-f24/tests/regression/demo'
 LD_LIBRARY_PATH=/home/ecegridfs/a/socet39/socet/vortex-f24/runtime:/usr/local/lib64:/usr/local/lib: VORTEX_DRIVER=simx ./demo -n64
 open device connection
-Cannot open library: libsimx.so: cannot open shared object file: No such file or directory
-Error: 'vx_dev_open(&device)' returned 1!
-make: *** [../common.mk:89: run-simx] Error 255
+demo: /home/ecegridfs/a/socet39/socet/vortex-f24/sim/common/simobject.h:61: void SimPort<Pkt>::bind(SimPort<Pkt>*) [with Pkt = vortex::MemRsp]: Assertion `peer_ == nullptr' failed.
+Aborted (core dumped)
+make: *** [../common.mk:89: run-simx] Error 134
 make: Leaving directory '/home/ecegridfs/a/socet39/socet/vortex-f24/tests/regression/demo'

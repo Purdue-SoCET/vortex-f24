@@ -146,7 +146,7 @@ private:
   Socket* socket_;
   Arch& arch_;
 
-  Emulator emulator_;
+  ScalarEmulator scalaremulator_;
 
   std::vector<IBuffer> ibuffers_;
   Scoreboard scoreboard_;

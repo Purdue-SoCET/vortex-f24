@@ -38,7 +38,7 @@ ScalarCore::ScalarCore(const SimContext& ctx,
   , core_id_(core_id)
   , socket_(socket)
   , arch_(arch)
-  , emulator_(arch, dcrs, this) //Initialize emulator object
+  , scalaremulator_(arch, dcrs, this) //Initialize emulator object
   , ibuffers_(arch.num_warps(), IBUF_SIZE) 
   , scoreboard_(arch_)
   , operands_(ISSUE_WIDTH)
@@ -155,7 +155,7 @@ ScalarCore::~ScalarCore() {
 
 void ScalarCore::reset() {
 
-  emulator_.clear();
+  scalaremulator_.clear();
 
   for (auto& commit_arb : commit_arbs_) {
     commit_arb->reset();
@@ -190,14 +190,14 @@ void ScalarCore::tick() {
 }
 
 void ScalarCore::schedule() {
-  auto trace = emulator_.step();
+  auto trace = scalaremulator_.step();
   if (trace == nullptr) {
     ++perf_stats_.sched_idle;
     return;
   }
 
   // suspend warp until decode
-  emulator_.suspend(trace->wid);
+  scalaremulator_.suspend(trace->wid);
 
   DT(3, "pipeline-schedule: " << *trace);
 
@@ -258,7 +258,7 @@ void ScalarCore::decode() {
 
   // release warp
   if (!trace->fetch_stall) {
-    emulator_.resume(trace->wid);
+    scalaremulator_.resume(trace->wid);
   }
 
   DT(3, "pipeline-decode: " << *trace);
@@ -406,27 +406,27 @@ void ScalarCore::commit() {
 }
 
 int ScalarCore::get_exitcode() const {
-  return emulator_.get_exitcode();
+  return scalaremulator_.get_exitcode();
 }
 
 bool ScalarCore::running() const {
-  return emulator_.running() || (pending_instrs_ != 0);
+  return scalaremulator_.running() || (pending_instrs_ != 0);
 }
 
 void ScalarCore::resume(uint32_t wid) {
-  emulator_.resume(wid);
+  scalaremulator_.resume(wid);
 }
 
 bool ScalarCore::barrier(uint32_t bar_id, uint32_t count, uint32_t wid) {
-  return emulator_.barrier(bar_id, count, wid);
+  return scalaremulator_.barrier(bar_id, count, wid);
 }
 
 bool ScalarCore::wspawn(uint32_t num_warps, Word nextPC) {
-  return emulator_.wspawn(num_warps, nextPC);
+  return scalaremulator_.wspawn(num_warps, nextPC);
 }
 
 void ScalarCore::attach_ram(RAM* ram) {
-  emulator_.attach_ram(ram);
+  scalaremulator_.attach_ram(ram);
 }
 
 #ifdef VM_ENABLE
