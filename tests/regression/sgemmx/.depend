@@ -1,0 +1,4 @@
+main.o: \
+ /home/ecegridfs/a/socet39/socet/vortex-f24/tests/regression/sgemmx/main.cpp \
+ /home/ecegridfs/a/socet39/socet/vortex-f24/runtime/include/vortex.h \
+ /home/ecegridfs/a/socet39/socet/vortex-f24/tests/regression/sgemmx/common.h

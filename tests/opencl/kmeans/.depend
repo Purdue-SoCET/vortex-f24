@@ -1,0 +1,20 @@
+main.o: \
+ /home/ecegridfs/a/socet39/socet/vortex-f24/tests/opencl/kmeans/main.cc \
+ /home/ecegridfs/a/socet39/socet/vortex-f24/tests/opencl/kmeans/kmeans.h \
+ /home/ecegridfs/a/socet39/socet/vortex-f24/tools/pocl/include/CL/cl.h \
+ /home/ecegridfs/a/socet39/socet/vortex-f24/tools/pocl/include/CL/cl_version.h \
+ /home/ecegridfs/a/socet39/socet/vortex-f24/tools/pocl/include/CL/cl_platform.h
+read_input.o: \
+ /home/ecegridfs/a/socet39/socet/vortex-f24/tests/opencl/kmeans/read_input.c \
+ /home/ecegridfs/a/socet39/socet/vortex-f24/tests/opencl/kmeans/kmeans.h
+rmse.o: \
+ /home/ecegridfs/a/socet39/socet/vortex-f24/tests/opencl/kmeans/rmse.c \
+ /home/ecegridfs/a/socet39/socet/vortex-f24/tests/opencl/kmeans/kmeans.h
+kmeans_clustering.o: \
+ /home/ecegridfs/a/socet39/socet/vortex-f24/tests/opencl/kmeans/kmeans_clustering.c \
+ /home/ecegridfs/a/socet39/socet/vortex-f24/tests/opencl/kmeans/kmeans.h
+cluster.o: \
+ /home/ecegridfs/a/socet39/socet/vortex-f24/tests/opencl/kmeans/cluster.c \
+ /home/ecegridfs/a/socet39/socet/vortex-f24/tests/opencl/kmeans/kmeans.h
+getopt.o: \
+ /home/ecegridfs/a/socet39/socet/vortex-f24/tests/opencl/kmeans/getopt.c

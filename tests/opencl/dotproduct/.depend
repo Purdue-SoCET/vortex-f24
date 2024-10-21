@@ -1,0 +1,32 @@
+main.o: \
+ /home/ecegridfs/a/socet39/socet/vortex-f24/tests/opencl/dotproduct/main.cc \
+ /home/ecegridfs/a/socet39/socet/vortex-f24/tests/opencl/dotproduct/oclUtils.h \
+ /home/ecegridfs/a/socet39/socet/vortex-f24/tests/opencl/dotproduct/shrUtils.h \
+ /home/ecegridfs/a/socet39/socet/vortex-f24/tools/pocl/include/CL/opencl.h \
+ /home/ecegridfs/a/socet39/socet/vortex-f24/tools/pocl/include/CL/cl.h \
+ /home/ecegridfs/a/socet39/socet/vortex-f24/tools/pocl/include/CL/cl_version.h \
+ /home/ecegridfs/a/socet39/socet/vortex-f24/tools/pocl/include/CL/cl_platform.h \
+ /home/ecegridfs/a/socet39/socet/vortex-f24/tools/pocl/include/CL/cl_gl.h \
+ /home/ecegridfs/a/socet39/socet/vortex-f24/tools/pocl/include/CL/cl_ext.h \
+ /home/ecegridfs/a/socet39/socet/vortex-f24/tools/pocl/include/CL/cl_ext_pocl.h \
+ /home/ecegridfs/a/socet39/socet/vortex-f24/tests/opencl/dotproduct/shrQATest.h
+oclUtils.o: \
+ /home/ecegridfs/a/socet39/socet/vortex-f24/tests/opencl/dotproduct/oclUtils.cpp \
+ /home/ecegridfs/a/socet39/socet/vortex-f24/tests/opencl/dotproduct/oclUtils.h \
+ /home/ecegridfs/a/socet39/socet/vortex-f24/tests/opencl/dotproduct/shrUtils.h \
+ /home/ecegridfs/a/socet39/socet/vortex-f24/tools/pocl/include/CL/opencl.h \
+ /home/ecegridfs/a/socet39/socet/vortex-f24/tools/pocl/include/CL/cl.h \
+ /home/ecegridfs/a/socet39/socet/vortex-f24/tools/pocl/include/CL/cl_version.h \
+ /home/ecegridfs/a/socet39/socet/vortex-f24/tools/pocl/include/CL/cl_platform.h \
+ /home/ecegridfs/a/socet39/socet/vortex-f24/tools/pocl/include/CL/cl_gl.h \
+ /home/ecegridfs/a/socet39/socet/vortex-f24/tools/pocl/include/CL/cl_ext.h \
+ /home/ecegridfs/a/socet39/socet/vortex-f24/tools/pocl/include/CL/cl_ext_pocl.h
+shrUtils.o: \
+ /home/ecegridfs/a/socet39/socet/vortex-f24/tests/opencl/dotproduct/shrUtils.cpp \
+ /home/ecegridfs/a/socet39/socet/vortex-f24/tests/opencl/dotproduct/shrUtils.h \
+ /home/ecegridfs/a/socet39/socet/vortex-f24/tests/opencl/dotproduct/cmd_arg_reader.h \
+ /home/ecegridfs/a/socet39/socet/vortex-f24/tests/opencl/dotproduct/exception.h
+cmd_arg_reader.o: \
+ /home/ecegridfs/a/socet39/socet/vortex-f24/tests/opencl/dotproduct/cmd_arg_reader.cpp \
+ /home/ecegridfs/a/socet39/socet/vortex-f24/tests/opencl/dotproduct/cmd_arg_reader.h \
+ /home/ecegridfs/a/socet39/socet/vortex-f24/tests/opencl/dotproduct/exception.h

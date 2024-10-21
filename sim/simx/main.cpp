@@ -26,6 +26,8 @@
 #include "core.h"
 #include "VX_types.h"
 
+#include "arch_sclr.h"
+
 using namespace vortex;
 
 static void show_usage() {

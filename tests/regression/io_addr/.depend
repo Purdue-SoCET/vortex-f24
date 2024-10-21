@@ -1,0 +1,5 @@
+main.o: \
+ /home/ecegridfs/a/socet39/socet/vortex-f24/tests/regression/io_addr/main.cpp \
+ /home/ecegridfs/a/socet39/socet/vortex-f24/runtime/include/vortex.h \
+ /home/ecegridfs/a/socet39/socet/vortex-f24/hw/VX_config.h \
+ /home/ecegridfs/a/socet39/socet/vortex-f24/tests/regression/io_addr/common.h

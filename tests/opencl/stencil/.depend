@@ -1,0 +1,31 @@
+main.o: \
+ /home/ecegridfs/a/socet39/socet/vortex-f24/tests/opencl/stencil/main.cc \
+ /home/ecegridfs/a/socet39/socet/vortex-f24/tools/pocl/include/CL/cl.h \
+ /home/ecegridfs/a/socet39/socet/vortex-f24/tools/pocl/include/CL/cl_version.h \
+ /home/ecegridfs/a/socet39/socet/vortex-f24/tools/pocl/include/CL/cl_platform.h \
+ /home/ecegridfs/a/socet39/socet/vortex-f24/tests/opencl/stencil/parboil.h \
+ /home/ecegridfs/a/socet39/socet/vortex-f24/tests/opencl/stencil/file.h \
+ /home/ecegridfs/a/socet39/socet/vortex-f24/tests/opencl/stencil/ocl.h
+args.o: \
+ /home/ecegridfs/a/socet39/socet/vortex-f24/tests/opencl/stencil/args.c \
+ /home/ecegridfs/a/socet39/socet/vortex-f24/tests/opencl/stencil/parboil.h \
+ /home/ecegridfs/a/socet39/socet/vortex-f24/tools/pocl/include/CL/cl.h \
+ /home/ecegridfs/a/socet39/socet/vortex-f24/tools/pocl/include/CL/cl_version.h \
+ /home/ecegridfs/a/socet39/socet/vortex-f24/tools/pocl/include/CL/cl_platform.h
+parboil_opencl.o: \
+ /home/ecegridfs/a/socet39/socet/vortex-f24/tests/opencl/stencil/parboil_opencl.c \
+ /home/ecegridfs/a/socet39/socet/vortex-f24/tests/opencl/stencil/parboil.h \
+ /home/ecegridfs/a/socet39/socet/vortex-f24/tools/pocl/include/CL/cl.h \
+ /home/ecegridfs/a/socet39/socet/vortex-f24/tools/pocl/include/CL/cl_version.h \
+ /home/ecegridfs/a/socet39/socet/vortex-f24/tools/pocl/include/CL/cl_platform.h
+ocl.o: \
+ /home/ecegridfs/a/socet39/socet/vortex-f24/tests/opencl/stencil/ocl.c \
+ /home/ecegridfs/a/socet39/socet/vortex-f24/tools/pocl/include/CL/cl.h \
+ /home/ecegridfs/a/socet39/socet/vortex-f24/tools/pocl/include/CL/cl_version.h \
+ /home/ecegridfs/a/socet39/socet/vortex-f24/tools/pocl/include/CL/cl_platform.h \
+ /home/ecegridfs/a/socet39/socet/vortex-f24/tests/opencl/stencil/ocl.h
+gpu_info.o: \
+ /home/ecegridfs/a/socet39/socet/vortex-f24/tests/opencl/stencil/gpu_info.c \
+ /home/ecegridfs/a/socet39/socet/vortex-f24/tests/opencl/stencil/gpu_info.h
+file.o: \
+ /home/ecegridfs/a/socet39/socet/vortex-f24/tests/opencl/stencil/file.c

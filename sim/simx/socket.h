@@ -84,7 +84,6 @@ private:
   uint32_t                      socket_id_;
   Cluster*                      cluster_;
   std::vector<Core::Ptr>        cores_;
-  // std::vector<Core_SCLR::Ptr>   cores_sclr_;
   CacheCluster::Ptr             icaches_;
   CacheCluster::Ptr             dcaches_;
   uint16_t                      prev_num_threads;

@@ -32,13 +32,12 @@ Socket::Socket(const SimContext& ctx,
   , socket_id_(socket_id)
   , cluster_(cluster)
   , cores_(arch.socket_size())
-  // , cores_sclr_(arch.socket_size() - (arch.socket_size()/2))
 {
-  auto cores_per_socket = cores_.size(); //+ cores_sclr_.size();
+  auto cores_per_socket = cores_.size(); 
 
   char sname[100];
   snprintf(sname, 100, "socket%d-icaches", socket_id);
-  // Need double the inputs for double the cores
+  // Need double the inputs for double the cores?
   icaches_ = CacheCluster::Create(sname, cores_per_socket, NUM_ICACHES, 1, CacheSim::Config{
     !ICACHE_ENABLED,
     log2ceil(ICACHE_SIZE),  // C
@@ -81,11 +80,6 @@ Socket::Socket(const SimContext& ctx,
 
   // create cores
 
-  // Ex: I set cores = 1
-  // 1 SIMT core is created in the first loop
-  // 1 scalar core is created in the 2nd loop.
-  // Core 0 is SIMT, core 1 is scalar 
-
   // Create the SIMT cores
   for (uint32_t i = 0; i < cores_per_socket; ++i) {
     uint32_t core_id = socket_id * cores_per_socket + i;
@@ -100,6 +94,7 @@ Socket::Socket(const SimContext& ctx,
     }
   }
 
+  // Create the scalar cores
   for (uint32_t i = cores_per_socket/2; i < cores_per_socket; ++i) {
     uint32_t core_id = socket_id * cores_per_socket + i;
     cores_.at(i) = Core::Create(core_id, this, arch_sclr, dcrs);

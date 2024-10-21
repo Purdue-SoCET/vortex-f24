@@ -1,0 +1,21 @@
+main.o: \
+ /home/ecegridfs/a/socet39/socet/vortex-f24/tests/opencl/nearn/main.cc \
+ /home/ecegridfs/a/socet39/socet/vortex-f24/tests/opencl/nearn/nearestNeighbor.h \
+ /home/ecegridfs/a/socet39/socet/vortex-f24/tools/pocl/include/CL/opencl.h \
+ /home/ecegridfs/a/socet39/socet/vortex-f24/tools/pocl/include/CL/cl.h \
+ /home/ecegridfs/a/socet39/socet/vortex-f24/tools/pocl/include/CL/cl_version.h \
+ /home/ecegridfs/a/socet39/socet/vortex-f24/tools/pocl/include/CL/cl_platform.h \
+ /home/ecegridfs/a/socet39/socet/vortex-f24/tools/pocl/include/CL/cl_gl.h \
+ /home/ecegridfs/a/socet39/socet/vortex-f24/tools/pocl/include/CL/cl_ext.h \
+ /home/ecegridfs/a/socet39/socet/vortex-f24/tools/pocl/include/CL/cl_ext_pocl.h \
+ /home/ecegridfs/a/socet39/socet/vortex-f24/tests/opencl/nearn/clutils.h
+clutils.o: \
+ /home/ecegridfs/a/socet39/socet/vortex-f24/tests/opencl/nearn/clutils.cpp \
+ /home/ecegridfs/a/socet39/socet/vortex-f24/tools/pocl/include/CL/cl.h \
+ /home/ecegridfs/a/socet39/socet/vortex-f24/tools/pocl/include/CL/cl_version.h \
+ /home/ecegridfs/a/socet39/socet/vortex-f24/tools/pocl/include/CL/cl_platform.h \
+ /home/ecegridfs/a/socet39/socet/vortex-f24/tests/opencl/nearn/clutils.h \
+ /home/ecegridfs/a/socet39/socet/vortex-f24/tests/opencl/nearn/utils.h
+utils.o: \
+ /home/ecegridfs/a/socet39/socet/vortex-f24/tests/opencl/nearn/utils.cpp \
+ /home/ecegridfs/a/socet39/socet/vortex-f24/tests/opencl/nearn/utils.h
