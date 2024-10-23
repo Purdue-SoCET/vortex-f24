@@ -146,15 +146,17 @@ Core::Core(const SimContext& ctx,
     commit_arbs_.at(i) = arbiter;
   }
 
+  // Print the core ID and thread count to run.log
+  std::cout << "Core ID: " << this->core_id_ << " has " << this->arch_.num_threads() << " thread(s)." << std::endl;
+
   this->reset();
 }
 
 Core::~Core() {
-  std::cout << "Core ID: " << this->core_id_ << " has " << this->arch_.num_threads() << " number of threads." << std::endl;
+  std::cout << "Core ID: " << this->core_id_ << " has " << this->arch_.num_threads() << " thread(s)." << std::endl;
 }
 
 void Core::reset() {
-
   emulator_.clear();
 
   for (auto& commit_arb : commit_arbs_) {
@@ -175,15 +177,28 @@ void Core::reset() {
   pending_ifetches_ = 0;
 
   perf_stats_ = PerfStats();
+
+  this->branch_mispred_flush = false;
+  this->squash_in_progress = false; 
 }
 
 void Core::tick() {
-  this->commit();
-  this->execute();
-  this->issue();
-  this->decode();
-  this->fetch();
-  this->schedule();
+  this->branch_mispred_flush = 0; //Reset any flush from the previous cycle
+  if (arch_.num_threads() == 1) {
+    this->scalar_commit();
+    this->scalar_execute();
+    this->scalar_issue();
+    this->scalar_decode();
+    this->scalar_fetch();
+    this->scalar_schedule(); 
+  } else {
+    this->commit();
+    this->execute();
+    this->issue();
+    this->decode();
+    this->fetch();
+    this->schedule();
+  }
 
   ++perf_stats_.cycles;
   DPN(2, std::flush);
@@ -206,6 +221,32 @@ void Core::schedule() {
   ++pending_instrs_;
 }
 
+void Core::scalar_schedule() {
+  auto trace = emulator_.step();
+  if (trace == nullptr) {
+    ++perf_stats_.sched_idle;
+    return;
+  }
+
+  // Don't suspend the warp so less empty cycles
+  // suspend warp until decode
+  // emulator_.suspend(trace->wid);
+
+  if (this->branch_mispred_flush) { // On a flush, push a NOP instr
+    std::cout << "Flushing pipeline-schedule" << std::endl;  
+    auto nop_trace = new instr_trace_t(0, arch_);
+    DT(3, "pipeline-schedule: " << *nop_trace);
+    fetch_latch_.push(nop_trace); 
+    return; 
+  }
+
+  DT(3, "pipeline-schedule: " << *trace);
+
+  // advance to fetch stage
+  fetch_latch_.push(trace);
+  ++pending_instrs_;
+}
+
 void Core::fetch() {
   perf_stats_.ifetch_latency += pending_ifetches_;
 
@@ -215,7 +256,7 @@ void Core::fetch() {
     auto& mem_rsp = icache_rsp_port.front();
     auto trace = pending_icache_.at(mem_rsp.tag);
     decode_latch_.push(trace);
-    DT(3, "icache-rsp: addr=0x" << std::hex << trace->PC << ", tag=0x" << mem_rsp.tag << std::dec << ", " << *trace);
+    DT(3, "icache-rsp: addr=0x" << std::hex << trace->PC << ", tag=0x" << mem_rsp.tag << std::dec << ", ");
     pending_icache_.release(mem_rsp.tag);
     icache_rsp_port.pop();
     --pending_ifetches_;
@@ -224,6 +265,57 @@ void Core::fetch() {
   // send icache request
   if (fetch_latch_.empty())
     return;
+  auto trace = fetch_latch_.front();
+  MemReq mem_req;
+  mem_req.addr  = trace->PC;
+  mem_req.write = false;
+  mem_req.tag   = pending_icache_.allocate(trace);
+  mem_req.cid   = trace->cid;
+  mem_req.uuid  = trace->uuid;
+  icache_req_ports.at(0).push(mem_req, 2);
+  DT(3, "icache-req: addr=0x" << std::hex << mem_req.addr << ", tag=0x" << mem_req.tag << std::dec << ", " << *trace);
+  fetch_latch_.pop();
+  ++perf_stats_.ifetches;
+  ++pending_ifetches_;
+}
+
+void Core::scalar_fetch() {
+  perf_stats_.ifetch_latency += pending_ifetches_;
+
+  // handle icache response
+  auto& icache_rsp_port = icache_rsp_ports.at(0);
+
+  // On a pipeline flush, it is possible icache-req was already sent when not needed. So need to squash the response when it's received. 
+  // Start the squash on a flush. Clear the squash once the icache response port is empty. 
+  this->squash_in_progress = this->squash_in_progress ? (!icache_rsp_port.empty()) : this->branch_mispred_flush; 
+  if (this->squash_in_progress) { 
+    std::cout << "Squashing icache-rsp in pipeline-fetch" << std::endl;
+    icache_rsp_port.pop();   
+    --pending_ifetches_; 
+  } else {
+    if (!icache_rsp_port.empty()) {
+      auto& mem_rsp = icache_rsp_port.front();
+      auto trace = pending_icache_.at(mem_rsp.tag);
+      decode_latch_.push(trace);
+      DT(3, "icache-rsp: addr=0x" << std::hex << trace->PC << ", tag=0x" << mem_rsp.tag << std::dec << ", " << *trace);
+      pending_icache_.release(mem_rsp.tag);
+      icache_rsp_port.pop();
+      --pending_ifetches_;
+    }
+  }
+
+  if (this->branch_mispred_flush) { // On a flush, push a NOP instr and don't send icache request
+    std::cout << "Flushing pipeline-fetch" << std::endl;
+    auto nop_trace = new instr_trace_t(0, arch_);
+    decode_latch_.push(nop_trace); 
+    return; 
+  }
+
+  // send icache request
+  if (fetch_latch_.empty()) {
+    return;
+  }
+
   auto trace = fetch_latch_.front();
   MemReq mem_req;
   mem_req.addr  = trace->PC;
@@ -267,6 +359,37 @@ void Core::decode() {
   ibuffer.push(trace);
 
   decode_latch_.pop();
+}
+
+void Core::scalar_decode() {
+  if (decode_latch_.empty())
+    return;
+
+  auto trace = decode_latch_.front();
+
+  // check ibuffer capacity
+  auto& ibuffer = ibuffers_.at(trace->wid);
+  if (ibuffer.full()) {
+    if (!trace->log_once(true)) {
+      DT(4, "*** ibuffer-stall: " << *trace);
+    }
+    ++perf_stats_.ibuf_stalls;
+    return;
+  } else {
+    trace->log_once(false);
+  }
+
+  DT(3, "pipeline-decode: " << *trace);
+
+  // insert to ibuffer
+  if (this->branch_mispred_flush) {
+    auto nop_trace = new instr_trace_t(0, arch_);
+    ibuffer.push(nop_trace);
+    decode_latch_.pop(); 
+  } else {
+    ibuffer.push(trace);
+    decode_latch_.pop();
+  }
 }
 
 void Core::issue() {
@@ -356,6 +479,93 @@ void Core::issue() {
   ++ibuffer_idx_;
 }
 
+void Core::scalar_issue() {
+  // operands to dispatchers
+  for (uint32_t i = 0; i < ISSUE_WIDTH; ++i) {
+    auto& operand = operands_.at(i);
+    if (operand->Output.empty())
+      continue;
+    auto trace = operand->Output.front();
+    if (dispatchers_.at((int)trace->fu_type)->push(i, trace)) { //All NOPs routed to ALU
+      operand->Output.pop();
+      trace->log_once(false);
+    } else {
+      if (!trace->log_once(true)) {
+        DT(4, "*** dispatch-stall: " << *trace);
+      }
+    }
+  }
+
+  // issue ibuffer instructions
+  for (uint32_t i = 0; i < ISSUE_WIDTH; ++i) {
+    bool has_instrs = false;
+    bool found_match = false;
+    for (uint32_t w = 0; w < PER_ISSUE_WARPS; ++w) {
+      uint32_t kk = (ibuffer_idx_ + w) % PER_ISSUE_WARPS;
+      uint32_t ii = kk * ISSUE_WIDTH + i;
+      auto& ibuffer = ibuffers_.at(ii);
+      if (ibuffer.empty())
+        continue;
+      // check scoreboard
+      has_instrs = true;
+      auto trace = ibuffer.top();
+      if (scoreboard_.in_use(trace)) {
+        auto uses = scoreboard_.get_uses(trace);
+        if (!trace->log_once(true)) {
+          DTH(4, "*** scoreboard-stall: dependents={");
+          for (uint32_t j = 0, n = uses.size(); j < n; ++j) {
+            auto& use = uses.at(j);
+            __unused (use);
+            if (j) DTN(4, ", ");
+            DTN(4, use.reg_type << use.reg_id << "(#" << use.uuid << ")");
+          }
+          DTN(4, "}, " << *trace << std::endl);
+        }
+        for (uint32_t j = 0, n = uses.size(); j < n; ++j) {
+          auto& use = uses.at(j);
+          switch (use.fu_type) {
+          case FUType::ALU: ++perf_stats_.scrb_alu; break;
+          case FUType::FPU: ++perf_stats_.scrb_fpu; break;
+          case FUType::LSU: ++perf_stats_.scrb_lsu; break;
+          case FUType::SFU: {
+            ++perf_stats_.scrb_sfu;
+            switch (use.sfu_type) {
+            case SfuType::TMC:
+            case SfuType::WSPAWN:
+            case SfuType::SPLIT:
+            case SfuType::JOIN:
+            case SfuType::BAR:
+            case SfuType::PRED: ++perf_stats_.scrb_wctl; break;
+            case SfuType::CSRRW:
+            case SfuType::CSRRS:
+            case SfuType::CSRRC: ++perf_stats_.scrb_csrs; break;
+            default: assert(false);
+            }
+          } break;
+          default: assert(false);
+          }
+        }
+      } else {
+        trace->log_once(false);
+        // update scoreboard
+        DT(3, "pipeline-scoreboard: " << *trace);
+        if (trace->wb) {
+          scoreboard_.reserve(trace);
+        }
+        // to operand stage (NOP or actual instruction gets pushed to operand)
+        operands_.at(i)->Input.push(trace, 2);
+        ibuffer.pop();
+        found_match = true;
+        break;
+      }
+    }
+    if (has_instrs && !found_match) {
+      ++perf_stats_.scrb_stalls;
+    }
+  }
+  ++ibuffer_idx_;
+}
+
 void Core::execute() {
   for (uint32_t i = 0; i < (uint32_t)FUType::Count; ++i) {
     auto& dispatch = dispatchers_.at(i);
@@ -370,7 +580,60 @@ void Core::execute() {
   }
 }
 
+void Core::scalar_execute() {
+
+  for (uint32_t i = 0; i < (uint32_t)FUType::Count; ++i) {
+    auto& dispatch = dispatchers_.at(i);
+    auto& func_unit = func_units_.at(i);
+    for (uint32_t j = 0; j < ISSUE_WIDTH; ++j) {
+      if (dispatch->Outputs.at(j).empty())
+        continue;
+      auto trace = dispatch->Outputs.at(j).front();
+      if (trace->branch_mispred_flush) {
+        this->branch_mispred_flush = true; 
+      }
+      func_unit->Inputs.at(j).push(trace, 2);
+      dispatch->Outputs.at(j).pop();
+    }
+  }
+}
+
 void Core::commit() {
+  // process completed instructions
+  for (uint32_t i = 0; i < ISSUE_WIDTH; ++i) {
+    auto& commit_arb = commit_arbs_.at(i);
+    if (commit_arb->Outputs.at(0).empty())
+      continue;
+    auto trace = commit_arb->Outputs.at(0).front();
+
+    // advance to commit stage
+    DT(3, "pipeline-commit: " << *trace);
+    assert(trace->cid == core_id_);
+
+    // update scoreboard
+    if (trace->eop) {
+      if (trace->wb) {
+        scoreboard_.release(trace);
+      }
+
+      --pending_instrs_;
+
+      perf_stats_.instrs += trace->tmask.count();
+    }
+
+    perf_stats_.opds_stalls = 0;
+    for (uint32_t i = 0; i < ISSUE_WIDTH; ++i) {
+      perf_stats_.opds_stalls += operands_.at(i)->total_stalls();
+    }
+
+    commit_arb->Outputs.at(0).pop();
+
+    // delete the trace
+    delete trace;
+  }
+}
+
+void Core::scalar_commit() {
   // process completed instructions
   for (uint32_t i = 0; i < ISSUE_WIDTH; ++i) {
     auto& commit_arb = commit_arbs_.at(i);

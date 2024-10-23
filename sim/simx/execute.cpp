@@ -629,6 +629,12 @@ void Emulator::execute(const Instr &instr, uint32_t wid, instr_trace_t *trace) {
       default:
         std::abort();
       }
+      // Branch mispredicted if it should have been taken and core is scalar
+      if (!curr_taken && arch_.num_threads() == 1) {
+        std::cout << "Branch Mispredicted! Flushing pipeling! PC=0x" << std::hex << warp.PC << std::dec << " (#" << trace->uuid << ")\n" << std::flush;
+        trace->branch_mispred_flush = true; 
+      }
+
       if (t == thread_start) {
         all_taken = curr_taken;
       } else {

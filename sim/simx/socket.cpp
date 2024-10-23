@@ -14,8 +14,6 @@
 #include "socket.h"
 #include "cluster.h"
 
-#define SCALAR_ID_OFFSET 10
-
 using namespace vortex;
 
 Socket::Socket(const SimContext& ctx,
@@ -81,7 +79,7 @@ Socket::Socket(const SimContext& ctx,
   // create cores
 
   // Create the SIMT cores
-  for (uint32_t i = 0; i < cores_per_socket; ++i) {
+  for (uint32_t i = 0; i < cores_per_socket/2; ++i) {
     uint32_t core_id = socket_id * cores_per_socket + i;
     cores_.at(i) = Core::Create(core_id, this, arch, dcrs);
 
@@ -137,9 +135,6 @@ void Socket::set_satp(uint64_t satp) {
     core->set_satp(satp);
   }
 
-  // for (auto core1 : cores_sclr_) {
-  //   core1->set_satp(satp);
-  // }
 }
 #endif
 
@@ -149,10 +144,6 @@ bool Socket::running() const {
       return true;
   }
 
-  // for (auto& core1 : cores_sclr_) {
-  //   if (core1->running())
-  //     return true;
-  // }
   return false;
 }
 
@@ -162,9 +153,6 @@ int Socket::get_exitcode() const {
     exitcode |= core->get_exitcode();
   }
 
-  // for (auto& core1 : cores_sclr_) {
-  //   exitcode |= core1->get_exitcode();
-  // }
   return exitcode;
 }
 
@@ -173,13 +161,7 @@ void Socket::barrier(uint32_t bar_id, uint32_t count, uint32_t core_id) {
 }
 
 void Socket::resume(uint32_t core_index) {
-  // if(core_index <= cores_.size()-1){
     cores_.at(core_index)->resume(-1);
-  // }
-
-  // else {
-  //   cores_sclr_.at(core_index)->resume(-1);
-  // }
 }
 
 Socket::PerfStats Socket::perf_stats() const {

@@ -87,6 +87,8 @@ public:
 
   bool fetch_stall;
 
+  bool branch_mispred_flush; 
+
   instr_trace_t(uint64_t uuid, Arch& arch)
     : uuid(uuid)
     , arch(arch)
@@ -104,6 +106,7 @@ public:
     , sop(true)
     , eop(true)
     , fetch_stall(false)
+    , branch_mispred_flush(false)
     , log_once_(false)
   {}
 
@@ -124,6 +127,7 @@ public:
     , sop(rhs.sop)
     , eop(rhs.eop)
     , fetch_stall(rhs.fetch_stall)
+    , branch_mispred_flush(rhs.branch_mispred_flush)
     , log_once_(false)
   {}
 

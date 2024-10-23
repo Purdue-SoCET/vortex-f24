@@ -57,6 +57,8 @@ public:
 
   int get_exitcode() const;
 
+  uint32_t get_core_id();
+
 private:
 
   struct ipdom_entry_t {

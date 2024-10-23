@@ -30,6 +30,7 @@
 
 using namespace vortex;
 
+
 Emulator::ipdom_entry_t::ipdom_entry_t(const ThreadMask &tmask, Word PC)
   : tmask(tmask)
   , PC(PC)
@@ -221,6 +222,10 @@ bool Emulator::running() const {
 
 int Emulator::get_exitcode() const {
   return warps_.at(0).ireg_file.at(0).at(3);
+}
+
+uint32_t Emulator::get_core_id() {
+  return core_->id(); 
 }
 
 void Emulator::suspend(uint32_t wid) {
