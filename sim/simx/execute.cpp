@@ -1314,6 +1314,11 @@ void Emulator::execute(const Instr &instr, uint32_t wid, instr_trace_t *trace) {
         for (uint32_t t = 0; t < num_threads; ++t) {
           next_tmask.set(t, rsdata.at(thread_last)[0].i & (1 << t));
         }
+
+        if (next_tmask == 0) { //If only active thread tries to kill itself, generate halt signal
+          trace->halt = true; 
+        }
+
       } break;
       case 1: {
         // WSPAWN

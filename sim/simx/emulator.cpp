@@ -162,9 +162,13 @@ instr_trace_t* Emulator::step() {
   if (scheduled_warp == -1)
     return nullptr;
 
-  // suspend warp until decode
+
   auto& warp = warps_.at(scheduled_warp);
-  assert(warp.tmask.any());
+  // suspend warp until decode (only for SIMT core)
+  if (arch_.num_threads() != 1) {
+    assert(warp.tmask.any());
+  }
+
 
 #ifndef NDEBUG
   uint32_t instr_uuid = warp.uuid++;
