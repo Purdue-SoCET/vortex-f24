@@ -16,7 +16,7 @@
 
 using namespace vortex;
 
-ProcessorImpl::ProcessorImpl(Arch& arch, Arch_SCLR& arch_sclr)
+ProcessorImpl::ProcessorImpl(const Arch& arch, const Arch_SCLR& arch_sclr)
   : arch_(arch)
   , arch_sclr_(arch_sclr)
   , clusters_(arch.num_clusters())
@@ -149,7 +149,7 @@ ProcessorImpl::PerfStats ProcessorImpl::perf_stats() const {
 
 ///////////////////////////////////////////////////////////////////////////////
 
-Processor::Processor(Arch& arch, Arch_SCLR& arch_sclr)
+Processor::Processor(const Arch& arch, const Arch_SCLR& arch_sclr)
   : impl_(new ProcessorImpl(arch, arch_sclr))
 {
 #ifdef VM_ENABLE

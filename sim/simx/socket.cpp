@@ -19,8 +19,8 @@ using namespace vortex;
 Socket::Socket(const SimContext& ctx,
                 uint32_t socket_id,
                 Cluster* cluster,
-                Arch &arch,
-                Arch_SCLR &arch_sclr,
+                const Arch &arch,
+                const Arch_SCLR &arch_sclr,
                 const DCRS &dcrs)
   : SimObject(ctx, "socket")
   , icache_mem_req_port(this)

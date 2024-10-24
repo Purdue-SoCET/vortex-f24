@@ -41,7 +41,7 @@ Emulator::ipdom_entry_t::ipdom_entry_t(const ThreadMask &tmask)
   , fallthrough(true)
 {}
 
-Emulator::warp_t::warp_t(Arch& arch)
+Emulator::warp_t::warp_t(const Arch& arch)
   : ireg_file(arch.num_threads(), std::vector<Word>(MAX_NUM_REGS))
   , freg_file(arch.num_threads(), std::vector<uint64_t>(MAX_NUM_REGS))
   , uuid(0)
@@ -79,7 +79,7 @@ void Emulator::warp_t::clear(uint64_t startup_addr) {
 
 ///////////////////////////////////////////////////////////////////////////////
 
-Emulator::Emulator(Arch &arch, const DCRS &dcrs, Core* core)
+Emulator::Emulator(const Arch &arch, const DCRS &dcrs, Core* core)
     : arch_(arch)
     , dcrs_(dcrs)
     , core_(core)
@@ -186,6 +186,7 @@ instr_trace_t* Emulator::step() {
   auto instr = this->decode(instr_code);
   if (!instr) {
     std::cout << "Error: invalid instruction 0x" << std::hex << instr_code << ", at PC=0x" << warp.PC << " (#" << std::dec << uuid << ")" << std::endl;
+    std::cout << "Core ID: " << core_->id() << " has " << arch_.num_threads() << " number of threads." << std::endl;
     std::abort();
   }
 

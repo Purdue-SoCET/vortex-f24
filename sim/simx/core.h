@@ -89,7 +89,7 @@ public:
   Core(const SimContext& ctx,
        uint32_t core_id,
        Socket* socket,
-       Arch &arch,
+       const Arch &arch,
        const DCRS &dcrs);
 
   ~Core();
@@ -115,7 +115,7 @@ public:
     return core_id_;
   }
 
-  Arch& arch() {
+  const Arch& arch() {
     return arch_;
   }
 
@@ -144,7 +144,7 @@ private:
 
   uint32_t core_id_;
   Socket* socket_;
-  Arch& arch_;
+  const Arch& arch_;
 
   Emulator emulator_;
 

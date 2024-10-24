@@ -18,8 +18,8 @@ using namespace vortex;
 Cluster::Cluster(const SimContext& ctx,
                  uint32_t cluster_id,
                  ProcessorImpl* processor,
-                 Arch &arch,
-                 Arch_SCLR &arch_sclr,
+                 const Arch &arch,
+                 const Arch_SCLR &arch_sclr,
                  const DCRS &dcrs)
   : SimObject(ctx, "cluster")
   , mem_req_port(this)

@@ -52,7 +52,7 @@ public:
 
   //--
   const uint64_t uuid;
-  Arch&    arch;
+  const Arch&    arch;
 
   //--
   uint32_t    cid;
@@ -87,7 +87,7 @@ public:
 
   bool fetch_stall;
 
-  instr_trace_t(uint64_t uuid, Arch& arch)
+  instr_trace_t(uint64_t uuid, const Arch& arch)
     : uuid(uuid)
     , arch(arch)
     , cid(0)

@@ -28,7 +28,7 @@ using namespace vortex;
 Core::Core(const SimContext& ctx,
            uint32_t core_id,
            Socket* socket,
-           Arch &arch,
+           const Arch &arch,
            const DCRS &dcrs)
   : SimObject(ctx, "core")
   , icache_req_ports(1, this)
@@ -51,6 +51,8 @@ Core::Core(const SimContext& ctx,
   , pending_icache_(arch_.num_warps())
   , commit_arbs_(ISSUE_WIDTH)
 {
+  std::cout << "Core ID: " << this->core_id_ << " has " << static_cast<double>(this->arch_.num_threads()) << " number of threads." << std::endl;
+
   char sname[100];
 
   for (uint32_t i = 0; i < ISSUE_WIDTH; ++i) {
@@ -150,7 +152,7 @@ Core::Core(const SimContext& ctx,
 }
 
 Core::~Core() {
-  std::cout << "Core ID: " << this->core_id_ << " has " << this->arch_.num_threads() << " number of threads." << std::endl;
+  std::cout << "Core ID: " << this->core_id_ << " has " << static_cast<double>(this->arch_.num_threads()) << " number of threads." << std::endl;
 }
 
 void Core::reset() {
