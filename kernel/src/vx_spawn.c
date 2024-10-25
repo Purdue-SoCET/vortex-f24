@@ -79,7 +79,7 @@ static void __attribute__ ((noinline)) spawn_tasks_rem_stub() {
   int cid = vx_core_id();
   int tid = vx_thread_id();
   
-  wspawn_tasks_args_t* p_wspawn_args = (wspawn_threads_args_t*)g_wspawn_args[cid];
+  wspawn_threads_args_t* p_wspawn_args = (wspawn_threads_args_t*)g_wspawn_args[cid];
   int task_id = p_wspawn_args->offset + tid;
   (p_wspawn_args->callback)(task_id, p_wspawn_args->arg);
 }
