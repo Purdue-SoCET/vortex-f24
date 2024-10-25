@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 # Copyright © 2019-2023
 #
@@ -48,6 +48,7 @@ PERF_CLASS=0
 REBUILD=2
 TEMPBUILD=0
 LOGFILE=run.log
+GDB=0
 
 for i in "$@"
 do
@@ -110,6 +111,10 @@ case $i in
         ;;
     --log=*)
         LOGFILE=${i#*=}
+        shift
+        ;;
+    --gdb=*)
+        GDB=${i#*=}
         shift
         ;;
     --help)
@@ -183,6 +188,7 @@ CONFIGS="-DNUM_CLUSTERS=$CLUSTERS -DNUM_CORES=$CORES -DNUM_WARPS=$WARPS -DNUM_TH
 
 echo "CONFIGS=$CONFIGS"
 
+# If rebuild is set, make -C clean-driver and store the settings in blackbox.cache
 if [ $REBUILD -ne 0 ]
 then
     BLACKBOX_CACHE=blackbox.$DRIVER.cache
@@ -248,7 +254,7 @@ then
         then
             echo "running: DEBUG=$DEBUG_LEVEL SCOPE=1 CONFIGS=$CONFIGS make -C $DRIVER_PATH"
             DEBUG=$DEBUG_LEVEL SCOPE=1 CONFIGS="$CONFIGS" make -C $DRIVER_PATH > /dev/null
-        else
+        else 
             echo "running: DEBUG=$DEBUG_LEVEL CONFIGS=$CONFIGS make -C $DRIVER_PATH"
             DEBUG=$DEBUG_LEVEL CONFIGS="$CONFIGS" make -C $DRIVER_PATH > /dev/null
         fi
@@ -256,13 +262,29 @@ then
         # running application
         if [ $HAS_ARGS -eq 1 ]
         then
-            echo "running: OPTS=$ARGS make -C $APP_PATH run-$DRIVER > $LOGFILE 2>&1"
-            DEBUG=1 OPTS=$ARGS make -C $APP_PATH run-$DRIVER > $LOGFILE 2>&1
-            status=$?
-        else
-            echo "running: make -C $APP_PATH run-$DRIVER > $LOGFILE 2>&1"
-            DEBUG=1 make -C $APP_PATH run-$DRIVER > $LOGFILE 2>&1
-            status=$?
+            if [ $GDB -eq 1 ]
+            then
+                echo "running: OPTS=$ARGS make -C $APP_PATH run-gdb-$DRIVER | tee >(grep -v \"?2004h\" > $LOGFILE"
+                # Clean up what's going into the logfile (no terminal escape sequences) and also output everything (including GDB) to terminal
+                DEBUG=1 OPTS=$ARGS make -C $APP_PATH run-gdb-$DRIVER | tee >(grep -v "?2004" > $LOGFILE) 
+                status=$?
+            else
+                echo "running: OPTS=$ARGS make -C $APP_PATH run-$DRIVER > $LOGFILE 2>&1"
+                DEBUG=1 OPTS=$ARGS make -C $APP_PATH run-$DRIVER > $LOGFILE 2>&1
+                status=$?
+            fi
+        else # This line is what starts the app for our use case most of the time
+            if [ $GDB -eq 1 ]
+            then
+                echo "running: make -C $APP_PATH run-gdb-$DRIVER | tee >(grep -v \"?2004h\" > $LOGFILE"
+                # Clean up what's going into the logfile (no terminal escape sequences) and also output everything (including GDB) to terminal
+                DEBUG=1 make -C $APP_PATH run-gdb-$DRIVER | tee >(grep -v "?2004" > $LOGFILE) 
+                status=$?
+            else
+                echo "running: make -C $APP_PATH run-$DRIVER > $LOGFILE 2>&1"
+                DEBUG=1 make -C $APP_PATH run-$DRIVER > $LOGFILE 2>&1
+                status=$?
+            fi
         fi
     fi
 

@@ -44,8 +44,8 @@ Socket::Socket(const SimContext& ctx,
     log2ceil(ICACHE_NUM_WAYS),// A
     1,                      // B
     XLEN,                   // address bits
-    1,                      // number of ports
-    1,                      // number of inputs
+    1,                      // number of ports (per bank) (was 1)
+    1,                      // number of inputs (for the cache) (was 1)
     false,                  // write-back
     false,                  // write response
     (uint8_t)arch.num_warps(), // mshr size
@@ -65,8 +65,8 @@ Socket::Socket(const SimContext& ctx,
     log2ceil(DCACHE_NUM_WAYS),// A
     log2ceil(DCACHE_NUM_BANKS), // B
     XLEN,                   // address bits
-    1,                      // number of ports
-    DCACHE_NUM_REQS,        // number of inputs
+    1,                      // number of ports (per bank)
+    DCACHE_NUM_REQS,        // number of inputs (for the cache)
     DCACHE_WRITEBACK,       // write-back
     false,                  // write response
     DCACHE_MSHR_SIZE,       // mshr size
@@ -77,7 +77,6 @@ Socket::Socket(const SimContext& ctx,
   dcache_mem_rsp_port.bind(&dcaches_->MemRspPort);
 
   // create cores
-
   // Create the SIMT cores
   for (uint32_t i = 0; i < cores_per_socket/2; ++i) {
     uint32_t core_id = socket_id * cores_per_socket + i;
@@ -105,6 +104,7 @@ Socket::Socket(const SimContext& ctx,
       dcaches_->CoreRspPorts.at(i).at(j).bind(&cores_.at(i)->dcache_rsp_ports.at(j));
     }
   }
+
 }
 
 Socket::~Socket() {

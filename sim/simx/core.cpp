@@ -594,8 +594,8 @@ void Core::scalar_execute() {
         continue;
       auto trace = dispatch->Outputs.at(j).front();
 
-      if (trace->halt) {
-        //TODO: Mark the to be scheduled warp as inactive
+      if (trace->halt) { // If "tmc 0" (only thread tries to kill itself), mark the scheduled warp as inactive
+        emulator_.suspend(trace->wid); 
       }
 
       if (trace->alu_type == AluType::BRANCH) { //Check that instruction is a branch/jump (IDLE to DRAIN)
