@@ -58,6 +58,8 @@ int vx_spawn_threads(uint32_t dimension,
 // function call serialization
 void vx_serial(vx_serial_cb callback, const void * arg);
 
+typedef void (*vx_spawn_tasks_cb)(int task_id, void *arg);
+
 #ifdef __cplusplus
 }
 #endif

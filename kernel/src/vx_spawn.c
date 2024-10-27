@@ -80,7 +80,7 @@ static void __attribute__ ((noinline)) spawn_tasks_rem_stub() {
   int tid = vx_thread_id();
   
   wspawn_threads_args_t* p_wspawn_args = (wspawn_threads_args_t*)g_wspawn_args[cid];
-  int task_id = p_wspawn_args->offset + tid;
+  int task_id = p_wspawn_args->all_tasks_offset + tid;
   (p_wspawn_args->callback)(task_id, p_wspawn_args->arg);
 }
 
@@ -234,12 +234,26 @@ static void __attribute__ ((noinline)) spawn_priority_tasks_all_stub() {
   vx_printf("VXPSpawn: cid=%d, wid=%d, tid=%d, fWindex=%d, offset= %d, warp_gid=%d, thread_gid=%d\n",cid, wid, tid, p_wspawn_args->warp_batches,p_wspawn_args->all_tasks_offset,warp_gid,thread_gid);
   callback(thread_gid);
 }
+
+static void __attribute__ ((noinline)) spawn_priority_tasks_all_cb() {  
+  // activate the 1 priority thread
+  // vx_tmc(-1);
+
+  vx_tmc_one();
+
+  // call stub routine
+  spawn_priority_tasks_all_stub();
+
+  // disable warp
+  vx_tmc_zero();
+}
+
 //---------------------------------------------------------------------------------------------
 
 // Second Function
 //---------------------------------------------------------------------------------------------
 
-void vx_spawn_priority_tasks(int num_tasks, int priority_tasks_offset,vx_kernel_func_cb callback , void * arg) {
+void vx_spawn_priority_tasks(int num_tasks, int priority_tasks_offset, vx_kernel_func_cb callback , void * arg) {
 	// device specs
   int NC_total = vx_num_cores();
   int NC = NC_total/2;
@@ -343,20 +357,6 @@ void vx_spawn_priority_tasks(int num_tasks, int priority_tasks_offset,vx_kernel_
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-
-static void __attribute__ ((noinline)) spawn_priority_tasks_all_cb() {  
-  // activate the 1 priority thread
-  // vx_tmc(-1);
-
-  vx_tmc_one();
-
-  // call stub routine
-  spawn_priority_tasks_all_stub();
-
-  // disable warp
-  vx_tmc_zero();
-}
-
 // spawn_kernel_all_stub
 static void __attribute__ ((noinline)) process_threads() {
   wspawn_threads_args_t* targs = (wspawn_threads_args_t*)csr_read(VX_CSR_MSCRATCH);

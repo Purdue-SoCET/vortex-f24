@@ -1,0 +1,11 @@
+prefix=/home/blaise/tools/pocl
+exec_prefix=/home/blaise/tools/pocl/bin
+libdir=/home/blaise/tools/pocl/lib
+includedir=/home/blaise/tools/pocl/include
+
+Name: Portable Computing Language
+Description: Portable Computing Language
+Version: 6.1-pre vortex_2.x-0-g81d0aeea0
+Libs: -L${libdir} -lpocl
+Cflags: -I${includedir}
+
