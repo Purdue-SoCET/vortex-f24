@@ -36,7 +36,9 @@ public:
 		, pid_count_(arch.num_threads() / num_lanes)
 		, batch_idx_(0)
 		, start_p_(block_size, 0)
-	{}
+	{
+		// std::cout << "This Dispatcher has pid_count: " << pid_count_ << std::endl;
+	}
 	
 	virtual ~Dispatcher() {}
 

@@ -43,6 +43,7 @@ public:
   Socket(const SimContext& ctx, 
          uint32_t socket_id,
          Cluster* cluster, 
+         uint16_t sockets_per_cluster,
          const Arch &arch,
          const Arch_SCLR &arch_sclr, 
          const DCRS &dcrs);

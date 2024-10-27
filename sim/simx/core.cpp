@@ -51,7 +51,7 @@ Core::Core(const SimContext& ctx,
   , pending_icache_(arch_.num_warps())
   , commit_arbs_(ISSUE_WIDTH)
 {
-  std::cout << "Core ID: " << this->core_id_ << " has " << static_cast<double>(this->arch_.num_threads()) << " number of threads." << std::endl;
+  std::cout << "Core ID: " << this->core_id_ << " has " << static_cast<double>(this->arch_.num_threads()) << " number of threads and " << NUM_ALU_LANES << " number of FUNC_UNIT Lanes"<< std::endl;
 
   char sname[100];
 

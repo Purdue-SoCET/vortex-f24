@@ -19,6 +19,7 @@ using namespace vortex;
 Socket::Socket(const SimContext& ctx,
                 uint32_t socket_id,
                 Cluster* cluster,
+                uint16_t sockets_per_cluster,
                 const Arch &arch,
                 const Arch_SCLR &arch_sclr,
                 const DCRS &dcrs)
@@ -33,6 +34,7 @@ Socket::Socket(const SimContext& ctx,
   // , cores_sclr_(arch.socket_size() - (arch.socket_size()/2))
 {
   auto cores_per_socket = cores_.size(); //+ cores_sclr_.size();
+  auto num_cores_per_cluster = sockets_per_cluster * cores_per_socket;
 
   char sname[100];
   snprintf(sname, 100, "socket%d-icaches", socket_id);
@@ -77,8 +79,10 @@ Socket::Socket(const SimContext& ctx,
 
   // create cores
 
-  for (uint32_t i = 0; i < cores_per_socket/2; ++i) {
+  for (uint32_t i = 0; i < cores_per_socket; ++i) {
     uint32_t core_id = socket_id * cores_per_socket + i;
+
+    if(core_id < num_cores_per_cluster/2){
     cores_.at(i) = Core::Create(core_id, this, arch, dcrs);
 
     cores_.at(i)->icache_req_ports.at(0).bind(&icaches_->CoreReqPorts.at(i).at(0));
@@ -88,20 +92,33 @@ Socket::Socket(const SimContext& ctx,
       cores_.at(i)->dcache_req_ports.at(j).bind(&dcaches_->CoreReqPorts.at(i).at(j));
       dcaches_->CoreRspPorts.at(i).at(j).bind(&cores_.at(i)->dcache_rsp_ports.at(j));
     }
-  }
+    }
 
-  for (uint32_t i = cores_per_socket/2; i < cores_per_socket; ++i) {
-    uint32_t core_id = socket_id * cores_per_socket + i;
-    cores_.at(i) = Core::Create(core_id, this, arch_sclr, dcrs);
+    else {
+      cores_.at(i) = Core::Create(core_id, this, arch_sclr, dcrs);
 
-    cores_.at(i)->icache_req_ports.at(0).bind(&icaches_->CoreReqPorts.at(i).at(0));
-    icaches_->CoreRspPorts.at(i).at(0).bind(&cores_.at(i)->icache_rsp_ports.at(0));
+      cores_.at(i)->icache_req_ports.at(0).bind(&icaches_->CoreReqPorts.at(i).at(0));
+      icaches_->CoreRspPorts.at(i).at(0).bind(&cores_.at(i)->icache_rsp_ports.at(0));
 
-    for (uint32_t j = 0; j < DCACHE_NUM_REQS; ++j) {
-      cores_.at(i)->dcache_req_ports.at(j).bind(&dcaches_->CoreReqPorts.at(i).at(j));
-      dcaches_->CoreRspPorts.at(i).at(j).bind(&cores_.at(i)->dcache_rsp_ports.at(j));
+      for (uint32_t j = 0; j < DCACHE_NUM_REQS; ++j) {
+        cores_.at(i)->dcache_req_ports.at(j).bind(&dcaches_->CoreReqPorts.at(i).at(j));
+        dcaches_->CoreRspPorts.at(i).at(j).bind(&cores_.at(i)->dcache_rsp_ports.at(j));
+      }
     }
   }
+
+  // for (uint32_t i = cores_per_socket/2; i < cores_per_socket; ++i) {
+  //   uint32_t core_id = socket_id * cores_per_socket + i;
+  //   cores_.at(i) = Core::Create(core_id, this, arch_sclr, dcrs);
+
+  //   cores_.at(i)->icache_req_ports.at(0).bind(&icaches_->CoreReqPorts.at(i).at(0));
+  //   icaches_->CoreRspPorts.at(i).at(0).bind(&cores_.at(i)->icache_rsp_ports.at(0));
+
+  //   for (uint32_t j = 0; j < DCACHE_NUM_REQS; ++j) {
+  //     cores_.at(i)->dcache_req_ports.at(j).bind(&dcaches_->CoreReqPorts.at(i).at(j));
+  //     dcaches_->CoreRspPorts.at(i).at(j).bind(&cores_.at(i)->dcache_rsp_ports.at(j));
+  //   }
+  // }
 }
 
 Socket::~Socket() {

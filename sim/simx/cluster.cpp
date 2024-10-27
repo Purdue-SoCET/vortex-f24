@@ -46,6 +46,7 @@ Cluster::Cluster(const SimContext& ctx,
     uint32_t socket_id = cluster_id * sockets_per_cluster + i;
     auto socket = Socket::Create(socket_id,
                                  this,
+                                 sockets_per_cluster,
                                  arch,
                                  arch_sclr,
                                  dcrs);
