@@ -143,6 +143,8 @@ int main(int argc, char *argv[]) {
 
   kernel_arg.num_tasks = total_threads;
   kernel_arg.task_size = count;
+  kernel_arg.num_cores = num_cores;
+  kernel_arg.num_threads_cores = num_threads;
 
   // allocate device memory
   std::cout << "allocate device memory" << std::endl;

@@ -46,7 +46,7 @@ typedef struct {
 } wspawn_groups_args_t;
 
 typedef struct {
-	vx_kernel_func_cb callback;
+	vx_spawn_tasks_cb callback;
 	const void* arg;
 	uint32_t all_tasks_offset;
   uint32_t remain_tasks_offset;
@@ -101,7 +101,7 @@ static void __attribute__ ((noinline)) spawn_tasks_all_cb() {
 
 // First Function
 //---------------------------------------------------------------------------------------------
-void vx_spawn_tasks(int num_tasks, vx_kernel_func_cb callback , void * arg) {
+void vx_spawn_tasks(uint32_t num_tasks, vx_spawn_tasks_cb callback , void * arg) {
 	// device specs
   
   int NC_total = vx_num_cores();
@@ -253,7 +253,7 @@ static void __attribute__ ((noinline)) spawn_priority_tasks_all_cb() {
 // Second Function
 //---------------------------------------------------------------------------------------------
 
-void vx_spawn_priority_tasks(int num_tasks, int priority_tasks_offset, vx_kernel_func_cb callback , void * arg) {
+void vx_spawn_priority_tasks(uint32_t num_tasks, int priority_tasks_offset, vx_spawn_tasks_cb callback , void * arg) {
 	// device specs
   int NC_total = vx_num_cores();
   int NC = NC_total/2;
@@ -393,7 +393,7 @@ static void __attribute__ ((noinline)) process_remaining_threads() {
   uint32_t thread_id = vx_thread_id();
   uint32_t task_id = targs->remain_tasks_offset + thread_id;
 
-  (targs->callback)((void*)targs->arg);
+  (targs->callback)(thread_id, (void*)targs->arg);
 }
 
 static void __attribute__ ((noinline)) process_threads_stub() {

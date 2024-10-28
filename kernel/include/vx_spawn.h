@@ -11,6 +11,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#pragma once
+#pragma message("I was here")
+
 #ifndef __VX_SPAWN_H__
 #define __VX_SPAWN_H__
 
@@ -21,6 +24,7 @@
 extern "C" {
 #endif
 
+
 typedef union {
   struct {
     uint32_t x;
@@ -30,10 +34,33 @@ typedef union {
   uint32_t m[3];
 } dim3_t;
 
+
+typedef struct {
+  uint32_t num_groups[3];
+  uint32_t global_offset[3];
+  uint32_t local_size[3];
+  char * printf_buffer;
+  uint32_t *printf_buffer_position;
+  uint32_t printf_buffer_capacity;
+  uint32_t work_dim;
+} context_t;
+
+typedef void (*vx_spawn_kernel_cb) (
+  const void * /* arg */,
+	const context_t * /* context */,
+	uint32_t /* group_x */,
+	uint32_t /* group_y */,
+	uint32_t /* group_z */
+);
+
+typedef void (*vx_spawn_tasks_cb)(int task_id, void *arg);
+
 extern __thread dim3_t blockIdx;
 extern __thread dim3_t threadIdx;
 extern dim3_t gridDim;
 extern dim3_t blockDim;
+
+
 
 extern __thread uint32_t __local_group_id;
 extern uint32_t __warps_per_group;
@@ -54,6 +81,8 @@ int vx_spawn_threads(uint32_t dimension,
                      const uint32_t* block_dim,
                      vx_kernel_func_cb kernel_func,
                      const void* arg);
+void vx_spawn_tasks(uint32_t num_tasks, vx_spawn_tasks_cb callback , void * arg);
+void vx_spawn_priority_tasks(uint32_t num_tasks, int priority_tasks_offset, vx_spawn_tasks_cb callback , void * arg);
 
 // function call serialization
 void vx_serial(vx_serial_cb callback, const void * arg);

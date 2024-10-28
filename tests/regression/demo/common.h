@@ -10,7 +10,9 @@ typedef struct {
   uint32_t task_size;
   uint64_t src0_addr;
   uint64_t src1_addr;
-  uint64_t dst_addr;  
+  uint64_t dst_addr;
+  uint64_t num_cores;
+  uint64_t num_threads_cores;  
 } kernel_arg_t;
 
 #endif
