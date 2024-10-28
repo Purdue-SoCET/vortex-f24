@@ -48,7 +48,7 @@ Core::Core(const SimContext& ctx,
   , mem_coalescers_(NUM_LSU_BLOCKS)
   , lsu_dcache_adapter_(NUM_LSU_BLOCKS)
   , lsu_lmem_adapter_(NUM_LSU_BLOCKS)
-  , pending_icache_(arch_.num_warps())
+  , pending_icache_(arch_.num_warps()) //Make pending_icache larger?
   , commit_arbs_(ISSUE_WIDTH)
 {
   char sname[100];
@@ -147,13 +147,13 @@ Core::Core(const SimContext& ctx,
   }
 
   // Print the core ID and thread count to run.log
-  std::cout << "Core ID: " << this->core_id_ << " has " << this->arch_.num_threads() << " thread(s)." << std::endl;
+  std::cout << "Core ID: " << this->core_id_ << " has " << this->arch_.num_threads() << " thread(s) and " << this->arch_.num_warps() << " warp(s)." << std::endl;
 
   this->reset();
 }
 
 Core::~Core() {
-  std::cout << "Core ID: " << this->core_id_ << " has " << this->arch_.num_threads() << " thread(s)." << std::endl;
+  std::cout << "Core ID: " << this->core_id_ << " has " << this->arch_.num_threads() << " thread(s) and " << this->arch_.num_warps() << " warp(s)." << std::endl;
 }
 
 void Core::reset() {
@@ -230,13 +230,10 @@ void Core::scalar_schedule() {
 
   // Don't suspend the warp so less empty cycles
   // suspend warp until decode
-  // emulator_.suspend(trace->wid);
+  emulator_.suspend(trace->wid);
 
   if (this->branch_mispred_flush) { // On a flush, clear the latch
     std::cout << "Flushing pipeline-schedule" << std::endl;  
-    // auto nop_trace = new instr_trace_t(0, arch_);
-    // DT(3, "pipeline-schedule: " << *nop_trace);
-    // fetch_latch_.push(nop_trace); 
     fetch_latch_.clear(); 
     return; 
   }
@@ -257,7 +254,7 @@ void Core::fetch() {
     auto& mem_rsp = icache_rsp_port.front();
     auto trace = pending_icache_.at(mem_rsp.tag);
     decode_latch_.push(trace);
-    DT(3, "icache-rsp: addr=0x" << std::hex << trace->PC << ", tag=0x" << mem_rsp.tag << std::dec << ", ");
+    DT(3, "icache-rsp: addr=0x" << std::hex << trace->PC << ", tag=0x" << mem_rsp.tag << std::dec << ", " << *trace);
     pending_icache_.release(mem_rsp.tag);
     icache_rsp_port.pop();
     --pending_ifetches_;
@@ -291,8 +288,14 @@ void Core::scalar_fetch() {
   this->squash_in_progress = this->squash_in_progress ? (!icache_rsp_port.empty()) : this->branch_mispred_flush; 
   if (this->squash_in_progress) { 
     std::cout << "Squashing icache-rsp in pipeline-fetch" << std::endl;
-    icache_rsp_port.pop();   
-    --pending_ifetches_; 
+    if (!icache_rsp_port.empty()) {
+      auto& mem_rsp = icache_rsp_port.front();
+      auto trace = pending_icache_.at(mem_rsp.tag);
+      DT(3, "Dropping icache-rsp: addr=0x" << std::hex << trace->PC << ", tag=0x" << mem_rsp.tag << std::dec << ", " << *trace);
+      pending_icache_.release(mem_rsp.tag);
+      icache_rsp_port.pop();
+      --pending_ifetches_;
+    }
   } else {
     if (!icache_rsp_port.empty()) {
       auto& mem_rsp = icache_rsp_port.front();
@@ -306,11 +309,10 @@ void Core::scalar_fetch() {
   }
 
   if (this->branch_mispred_flush) { // On a flush, push a NOP instr and don't send icache request
-    std::cout << "Flushing pipeline-fetch" << std::endl;
-    // auto nop_trace = new instr_trace_t(0, arch_);
-    // decode_latch_.push(nop_trace); 
+    std::cout << "Flushing pipeline-fetch" << std::endl; 
     decode_latch_.clear(); 
-    fetch_latch_.pop();
+    fetch_latch_.clear();
+    pending_icache_.clear(); 
     return; 
   }
 
@@ -319,13 +321,11 @@ void Core::scalar_fetch() {
     return;
   }
 
-
   auto trace = fetch_latch_.front();
   MemReq mem_req;
   mem_req.addr  = trace->PC;
   mem_req.write = false;
-  mem_req.tag   = pending_icache_.allocate(trace); //THIS IS CAUSING ISSUES because it is filling up because pending_icache isn't emptying
-  // Look at socket.cpp and fix the icache_req and icache_rsp connections (need more ports?)
+  mem_req.tag   = pending_icache_.allocate(trace);
   mem_req.cid   = trace->cid;
   mem_req.uuid  = trace->uuid;
   icache_req_ports.at(0).push(mem_req, 2);
@@ -384,12 +384,16 @@ void Core::scalar_decode() {
     trace->log_once(false);
   }
 
+  // release warp
+  if (!trace->fetch_stall) {
+    emulator_.resume(trace->wid);
+  }
+
   DT(3, "pipeline-decode: " << *trace);
 
   // insert to ibuffer
   if (this->branch_mispred_flush) {
-    // auto nop_trace = new instr_trace_t(0, arch_);
-    // ibuffer.push(nop_trace);
+    ibuffer.clear(); 
     decode_latch_.pop(); 
   } else {
     ibuffer.push(trace);
@@ -552,16 +556,22 @@ void Core::scalar_issue() {
         }
       } else {
         trace->log_once(false);
-        // update scoreboard
-        DT(3, "pipeline-scoreboard: " << *trace);
-        if (trace->wb) {
-          scoreboard_.reserve(trace);
+        if (this->branch_mispred_flush) {
+          scoreboard_.clear();
+          ibuffer.pop(); 
+          break; 
+        } else {
+          // update scoreboard
+          DT(3, "pipeline-scoreboard: " << *trace);
+          if (trace->wb) {
+            scoreboard_.reserve(trace);
+          }
+          // to operand stage
+          operands_.at(i)->Input.push(trace, 2);
+          ibuffer.pop();
+          found_match = true;
+          break;
         }
-        // to operand stage
-        operands_.at(i)->Input.push(trace, 2);
-        ibuffer.pop();
-        found_match = true;
-        break;
       }
     }
     if (has_instrs && !found_match) {
@@ -594,28 +604,39 @@ void Core::scalar_execute() {
         continue;
       auto trace = dispatch->Outputs.at(j).front();
 
-      if (trace->halt) { // If "tmc 0" (only thread tries to kill itself), mark the scheduled warp as inactive
-        emulator_.suspend(trace->wid); 
+      if (trace->halt) { // If "tmc 0" (only thread tries to kill itself), mark the scheduled warp as inactive and flush the pipeline
+        // emulator_.suspend(trace->wid); 
+        this->branch_mispred_flush = true;
       }
 
-      if (trace->alu_type == AluType::BRANCH) { //Check that instruction is a branch/jump (IDLE to DRAIN)
+      if ((trace->alu_type == AluType::BRANCH) & (i == (uint32_t)FUType::ALU)) { //Check that instruction in ALU is a branch/jump (IDLE to DRAIN)
         // Check that execute stage is empty (DRAIN to FIRE)
-        bool fire = func_units_.at((uint32_t) FUType::ALU)->Inputs.empty() & func_units_.at((uint32_t) FUType::FPU)->Inputs.empty() & 
-        func_units_.at((uint32_t) FUType::LSU)->Inputs.empty() & func_units_.at((uint32_t) FUType::SFU)->Inputs.empty();
-        if (!fire) {
-          continue; 
+        // The input and output of each func_unit is empty
+        bool fire = func_units_.at((uint32_t) FUType::ALU)->Inputs.at(j).empty() & func_units_.at((uint32_t) FUType::FPU)->Inputs.at(j).empty() & 
+        func_units_.at((uint32_t) FUType::LSU)->Inputs.at(j).empty() & func_units_.at((uint32_t) FUType::SFU)->Inputs.at(j).empty() &
+        func_units_.at((uint32_t) FUType::ALU)->Outputs.at(j).empty() & func_units_.at((uint32_t) FUType::FPU)->Outputs.at(j).empty() & 
+        func_units_.at((uint32_t) FUType::LSU)->Outputs.at(j).empty() & func_units_.at((uint32_t) FUType::SFU)->Outputs.at(j).empty();  
+        if (fire == false) { //Something is in the execute stage still, wait for it to drain
+          // Push a NOP to empty everything
+          // instr_trace_t nop = instr_trace_t(0, arch_);
+          // func_unit->Inputs.at(j).push(&nop, 2);
+          // dispatch->Outputs.at(j).pop();
+          DT(4, "*** execute-stage-drain-stall: " << *trace);
+
+          break; 
         } else {
-          //Fire the branch/jump into the execute stage
+          //Fire the branch/jump into the execute stage and flush if it is a mispredict
+          func_unit->Inputs.at(j).push(trace, 2);
+          dispatch->Outputs.at(j).pop();
           if (trace->branch_mispred_flush) {
             this->branch_mispred_flush = true; 
           }
-          func_unit->Inputs.at(j).push(trace, 2);
-          dispatch->Outputs.at(j).pop();
         }
+      } else {
+        // Otherwise can send it to a func_unit as normal
+        func_unit->Inputs.at(j).push(trace, 2);
+        dispatch->Outputs.at(j).pop();
       }
-      // Otherwise can send it to a func_unit as noraml
-      func_unit->Inputs.at(j).push(trace, 2);
-      dispatch->Outputs.at(j).pop();
     }
   }
 }

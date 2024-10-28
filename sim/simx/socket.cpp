@@ -35,7 +35,7 @@ Socket::Socket(const SimContext& ctx,
 
   char sname[100];
   snprintf(sname, 100, "socket%d-icaches", socket_id);
-  // Need double the inputs for double the cores?
+  // Increase number of requests icache can have?
   icaches_ = CacheCluster::Create(sname, cores_per_socket, NUM_ICACHES, 1, CacheSim::Config{
     !ICACHE_ENABLED,
     log2ceil(ICACHE_SIZE),  // C
@@ -44,8 +44,8 @@ Socket::Socket(const SimContext& ctx,
     log2ceil(ICACHE_NUM_WAYS),// A
     1,                      // B
     XLEN,                   // address bits
-    1,                      // number of ports (per bank) (was 1)
-    1,                      // number of inputs (for the cache) (was 1)
+    1,                      // number of ports (per bank)
+    1,                      // number of inputs (for the cache) 
     false,                  // write-back
     false,                  // write response
     (uint8_t)arch.num_warps(), // mshr size
@@ -80,7 +80,7 @@ Socket::Socket(const SimContext& ctx,
   // Create the SIMT cores
   for (uint32_t i = 0; i < cores_per_socket/2; ++i) {
     uint32_t core_id = socket_id * cores_per_socket + i;
-    cores_.at(i) = Core::Create(core_id, this, arch, dcrs);
+    cores_.at(i) = Core::Create(core_id, this, arch_sclr, dcrs); 
 
     cores_.at(i)->icache_req_ports.at(0).bind(&icaches_->CoreReqPorts.at(i).at(0));
     icaches_->CoreRspPorts.at(i).at(0).bind(&cores_.at(i)->icache_rsp_ports.at(0));

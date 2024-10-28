@@ -35,8 +35,9 @@ private:
   uint64_t local_mem_base_;
 
 public:
-  Arch_SCLR(uint16_t num_warps, uint16_t num_cores): 
-    Arch((uint16_t)1, num_warps, num_cores) 
+  // Scalar core has 1 thread, 1 warp
+  Arch_SCLR(uint16_t num_cores): 
+    Arch((uint16_t)1, (uint16_t)1, num_cores) 
   {}
 };
 
