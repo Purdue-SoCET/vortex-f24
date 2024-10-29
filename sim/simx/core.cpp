@@ -25,21 +25,23 @@
 
 using namespace vortex;
 
+#define STORAGE_MULTIPLIER 100
+
 Core::Core(const SimContext& ctx,
            uint32_t core_id,
            Socket* socket,
            Arch &arch,
            const DCRS &dcrs)
   : SimObject(ctx, "core")
-  , icache_req_ports(1, this)
-  , icache_rsp_ports(1, this)
+  , icache_req_ports(10*1, this) //larger vector for port?
+  , icache_rsp_ports(10*1, this)
   , dcache_req_ports(DCACHE_NUM_REQS, this)
   , dcache_rsp_ports(DCACHE_NUM_REQS, this)
   , core_id_(core_id)
   , socket_(socket)
   , arch_(arch)
   , emulator_(arch, dcrs, this)
-  , ibuffers_(arch.num_warps(), IBUF_SIZE)
+  , ibuffers_(100*arch.num_warps(), IBUF_SIZE) //larger ibuffer?
   , scoreboard_(arch_)
   , operands_(ISSUE_WIDTH)
   , dispatchers_((uint32_t)FUType::Count)
@@ -48,11 +50,10 @@ Core::Core(const SimContext& ctx,
   , mem_coalescers_(NUM_LSU_BLOCKS)
   , lsu_dcache_adapter_(NUM_LSU_BLOCKS)
   , lsu_lmem_adapter_(NUM_LSU_BLOCKS)
-  , pending_icache_(arch_.num_warps()) //Make pending_icache larger?
+  , pending_icache_(5000*arch_.num_warps()) //Make pending_icache larger?
   , commit_arbs_(ISSUE_WIDTH)
 {
   char sname[100];
-
   for (uint32_t i = 0; i < ISSUE_WIDTH; ++i) {
     operands_.at(i) = SimPlatform::instance().create_object<Operand>();
   }
@@ -230,7 +231,7 @@ void Core::scalar_schedule() {
 
   // Don't suspend the warp so less empty cycles
   // suspend warp until decode
-  emulator_.suspend(trace->wid);
+  // emulator_.suspend(trace->wid);
 
   if (this->branch_mispred_flush) { // On a flush, clear the latch
     std::cout << "Flushing pipeline-schedule" << std::endl;  
@@ -287,14 +288,17 @@ void Core::scalar_fetch() {
   // Start the squash on a flush. Clear the squash once the icache response port is empty. 
   this->squash_in_progress = this->squash_in_progress ? (!icache_rsp_port.empty()) : this->branch_mispred_flush; 
   if (this->squash_in_progress) { 
-    std::cout << "Squashing icache-rsp in pipeline-fetch" << std::endl;
     if (!icache_rsp_port.empty()) {
-      auto& mem_rsp = icache_rsp_port.front();
-      auto trace = pending_icache_.at(mem_rsp.tag);
-      DT(3, "Dropping icache-rsp: addr=0x" << std::hex << trace->PC << ", tag=0x" << mem_rsp.tag << std::dec << ", " << *trace);
-      pending_icache_.release(mem_rsp.tag);
+      std::cout << "Squashing icache-rsp in pipeline-fetch" << std::endl;
+
+      // auto& mem_rsp = icache_rsp_port.front();
+      // auto trace = pending_icache_.at(mem_rsp.tag);
+      // DT(3, "Dropping icache-rsp: addr=0x" << std::hex << trace->PC << ", tag=0x" << mem_rsp.tag << std::dec << ", " << *trace);
+      // pending_icache_.release(mem_rsp.tag);
+
       icache_rsp_port.pop();
-      --pending_ifetches_;
+      --pending_instrs_; 
+      // --pending_ifetches_;
     }
   } else {
     if (!icache_rsp_port.empty()) {
@@ -312,15 +316,17 @@ void Core::scalar_fetch() {
     std::cout << "Flushing pipeline-fetch" << std::endl; 
     decode_latch_.clear(); 
     fetch_latch_.clear();
-    pending_icache_.clear(); 
+    // pending_icache_.clear();
+    pending_instrs_ -= pending_ifetches_;  
+    pending_ifetches_ = 0; 
     return; 
   }
 
-  // send icache request
   if (fetch_latch_.empty()) {
     return;
   }
 
+  // send icache request
   auto trace = fetch_latch_.front();
   MemReq mem_req;
   mem_req.addr  = trace->PC;
@@ -374,6 +380,14 @@ void Core::scalar_decode() {
 
   // check ibuffer capacity
   auto& ibuffer = ibuffers_.at(trace->wid);
+
+  if (this->branch_mispred_flush) { //Flush before any stalling on mispredict
+    std::cout << "Flushing pipeline-decode" << std::endl; 
+    ibuffer.clear(); 
+    decode_latch_.clear(); 
+    return;
+  }
+
   if (ibuffer.full()) {
     if (!trace->log_once(true)) {
       DT(4, "*** ibuffer-stall: " << *trace);
@@ -385,20 +399,16 @@ void Core::scalar_decode() {
   }
 
   // release warp
-  if (!trace->fetch_stall) {
-    emulator_.resume(trace->wid);
-  }
+  // if (!trace->fetch_stall) {
+  //   emulator_.resume(trace->wid);
+  // }
 
   DT(3, "pipeline-decode: " << *trace);
 
   // insert to ibuffer
-  if (this->branch_mispred_flush) {
-    ibuffer.clear(); 
-    decode_latch_.pop(); 
-  } else {
-    ibuffer.push(trace);
-    decode_latch_.pop();
-  }
+  ibuffer.push(trace);
+  decode_latch_.pop();
+  return; 
 }
 
 void Core::issue() {
@@ -617,15 +627,10 @@ void Core::scalar_execute() {
         func_units_.at((uint32_t) FUType::ALU)->Outputs.at(j).empty() & func_units_.at((uint32_t) FUType::FPU)->Outputs.at(j).empty() & 
         func_units_.at((uint32_t) FUType::LSU)->Outputs.at(j).empty() & func_units_.at((uint32_t) FUType::SFU)->Outputs.at(j).empty();  
         if (fire == false) { //Something is in the execute stage still, wait for it to drain
-          // Push a NOP to empty everything
-          // instr_trace_t nop = instr_trace_t(0, arch_);
-          // func_unit->Inputs.at(j).push(&nop, 2);
-          // dispatch->Outputs.at(j).pop();
           DT(4, "*** execute-stage-drain-stall: " << *trace);
-
           break; 
         } else {
-          //Fire the branch/jump into the execute stage and flush if it is a mispredict
+          // Fire the branch/jump into the execute stage and flush if it is a mispredict
           func_unit->Inputs.at(j).push(trace, 2);
           dispatch->Outputs.at(j).pop();
           if (trace->branch_mispred_flush) {

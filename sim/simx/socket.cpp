@@ -56,7 +56,6 @@ Socket::Socket(const SimContext& ctx,
   icache_mem_rsp_port.bind(&icaches_->MemRspPort);
 
   snprintf(sname, 100, "socket%d-dcaches", socket_id);
-  // Need double the inputs for double the cores
   dcaches_ = CacheCluster::Create(sname, cores_per_socket, NUM_DCACHES, DCACHE_NUM_REQS, CacheSim::Config{
     !DCACHE_ENABLED,
     log2ceil(DCACHE_SIZE),  // C
@@ -123,10 +122,6 @@ void Socket::attach_ram(RAM* ram) {
   for (auto core : cores_) {
     core->attach_ram(ram);
   }
-
-  // for (auto core1 : cores_sclr_) {
-  //   core1->attach_ram(ram);
-  // }
 }
 
 #ifdef VM_ENABLE

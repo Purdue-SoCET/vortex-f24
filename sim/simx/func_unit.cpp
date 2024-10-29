@@ -51,7 +51,7 @@ void AluUnit::tick() {
 		}
 		DT(3, this->name() << ": op=" << trace->alu_type << ", " << *trace);
 		if (trace->eop && trace->fetch_stall) {
-			core_->resume(trace->wid);
+			// core_->resume(trace->wid);
 		}
 		input.pop();
 	}
@@ -268,7 +268,7 @@ void SfuUnit::tick() {
 
 		DT(3, this->name() << ": op=" << trace->sfu_type << ", " << *trace);
 		if (trace->eop && release_warp)  {
-			core_->resume(trace->wid);
+			// core_->resume(trace->wid);
 		}
 
 		input.pop();

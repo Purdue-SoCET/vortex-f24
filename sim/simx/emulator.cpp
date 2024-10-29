@@ -159,9 +159,9 @@ instr_trace_t* Emulator::step() {
       break;
     }
   }
-  if (scheduled_warp == -1)
+  if (scheduled_warp == -1) {
     return nullptr;
-
+  }
 
   // suspend warp until decode
   auto& warp = warps_.at(scheduled_warp);
