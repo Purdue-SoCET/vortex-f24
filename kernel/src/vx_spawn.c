@@ -174,7 +174,7 @@ void vx_spawn_tasks(uint32_t num_tasks, vx_spawn_tasks_cb callback , void * arg)
       vx_tmc_one();
       
       // wait for spawn warps to terminate
-      vx_wspawn_wait(); 
+      // vx_wspawn_wait(); 
     }
     if(rW>0)
     {
@@ -194,7 +194,7 @@ void vx_spawn_tasks(uint32_t num_tasks, vx_spawn_tasks_cb callback , void * arg)
       vx_tmc_one();
       
       // wait for spawn warps to terminate
-      vx_wspawn_wait(); 
+      // vx_wspawn_wait(); 
     }
   }
 
@@ -326,7 +326,7 @@ void vx_spawn_priority_tasks(uint32_t num_tasks, int priority_tasks_offset, vx_s
       vx_tmc_one();
       
       // wait for spawn warps to terminate
-      vx_wspawn_wait();
+      // vx_wspawn_wait();
       }
       if(rW>0)
       {
@@ -346,7 +346,7 @@ void vx_spawn_priority_tasks(uint32_t num_tasks, int priority_tasks_offset, vx_s
         vx_tmc_one();
         
         // wait for spawn warps to terminate
-        vx_wspawn_wait();
+        // vx_wspawn_wait();
       }
     }  
   }

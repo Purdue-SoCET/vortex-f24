@@ -11,9 +11,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#pragma once
-#pragma message("I was here")
-
 #ifndef __VX_SPAWN_H__
 #define __VX_SPAWN_H__
 
@@ -59,8 +56,6 @@ extern __thread dim3_t blockIdx;
 extern __thread dim3_t threadIdx;
 extern dim3_t gridDim;
 extern dim3_t blockDim;
-
-
 
 extern __thread uint32_t __local_group_id;
 extern uint32_t __warps_per_group;

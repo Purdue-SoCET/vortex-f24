@@ -1,18 +1,123 @@
-make: Entering directory '/home/ecegridfs/a/socet143/vortex-f24/tests/regression/demo'
-/home/ecegridfs/a/socet143/vortex-f24/tools/llvm-vortex/bin/clang++ --sysroot=/home/ecegridfs/a/socet143/vortex-f24/tools/riscv-gnu-toolchain/riscv32-unknown-elf --gcc-toolchain=/home/ecegridfs/a/socet143/vortex-f24/tools/riscv-gnu-toolchain -Xclang -target-feature -Xclang +vortex -Xclang -target-feature -Xclang +zicond -mllvm -disable-loop-idiom-all  -march=rv32imaf -mabi=ilp32f -O3 -mcmodel=medany -fno-rtti -fno-exceptions -nostartfiles -nostdlib -fdata-sections -ffunction-sections -I/home/ecegridfs/a/socet143/vortex-f24/kernel/include -I/home/ecegridfs/a/socet143/vortex-f24/hw -DXLEN_32 -DNDEBUG /home/ecegridfs/a/socet143/vortex-f24/tests/regression/demo/kernel.cpp -Wl,-Bstatic,--gc-sections,-T,/home/ecegridfs/a/socet143/vortex-f24/kernel/scripts/link32.ld,--defsym=STARTUP_ADDR=0x80000000 /home/ecegridfs/a/socet143/vortex-f24/kernel/libvortex.a -L/home/ecegridfs/a/socet143/vortex-f24/tools/libc32/lib -lm -lc /home/ecegridfs/a/socet143/vortex-f24/tools/libcrt32/lib/baremetal/libclang_rt.builtins-riscv32.a -o kernel.elf
-In file included from /home/ecegridfs/a/socet143/vortex-f24/tests/regression/demo/kernel.cpp:1:
-/home/ecegridfs/a/socet143/vortex-f24/kernel/include/vx_spawn.h:15:9: warning: I was here [-W#pragma-messages]
-   15 | #pragma message("I was here")
-      |         ^
-1 warning generated.
-/home/ecegridfs/a/socet143/vortex-f24/tools/riscv-gnu-toolchain/lib/gcc/riscv32-unknown-elf/12.2.0/../../../../bin/riscv32-unknown-elf-ld: /home/ecegridfs/a/socet143/vortex-f24/kernel/libvortex.a(vx_spawn.c.o): in function `.L0 ':
-vx_spawn.c:(.text.vx_spawn_tasks+0x160): undefined reference to `vx_wspawn_wait'
-/home/ecegridfs/a/socet143/vortex-f24/tools/riscv-gnu-toolchain/lib/gcc/riscv32-unknown-elf/12.2.0/../../../../bin/riscv32-unknown-elf-ld: /home/ecegridfs/a/socet143/vortex-f24/kernel/libvortex.a(vx_spawn.c.o): in function `.L44':
-vx_spawn.c:(.text.vx_spawn_tasks+0x2c0): undefined reference to `vx_wspawn_wait'
-/home/ecegridfs/a/socet143/vortex-f24/tools/riscv-gnu-toolchain/lib/gcc/riscv32-unknown-elf/12.2.0/../../../../bin/riscv32-unknown-elf-ld: /home/ecegridfs/a/socet143/vortex-f24/kernel/libvortex.a(vx_spawn.c.o): in function `.L0 ':
-vx_spawn.c:(.text.vx_spawn_priority_tasks+0x174): undefined reference to `vx_wspawn_wait'
-/home/ecegridfs/a/socet143/vortex-f24/tools/riscv-gnu-toolchain/lib/gcc/riscv32-unknown-elf/12.2.0/../../../../bin/riscv32-unknown-elf-ld: /home/ecegridfs/a/socet143/vortex-f24/kernel/libvortex.a(vx_spawn.c.o): in function `.L77':
-vx_spawn.c:(.text.vx_spawn_priority_tasks+0x2c0): undefined reference to `vx_wspawn_wait'
-clang++: error: ld command failed with exit code 1 (use -v to see invocation)
-make: *** [../common.mk:83: kernel.elf] Error 1
-make: Leaving directory '/home/ecegridfs/a/socet143/vortex-f24/tests/regression/demo'
+make: Entering directory '/home/ecegridfs/a/socet137/socet/vortex-f24/tests/regression/demo'
+g++ -std=c++11 -Wall -Wextra -pedantic -Wfatal-errors -I/home/ecegridfs/a/socet137/socet/vortex-f24/runtime/include -I/home/ecegridfs/a/socet137/socet/vortex-f24/hw -g -O0 -MM /home/ecegridfs/a/socet137/socet/vortex-f24/tests/regression/demo/main.cpp > .depend;
+g++ -std=c++11 -Wall -Wextra -pedantic -Wfatal-errors -I/home/ecegridfs/a/socet137/socet/vortex-f24/runtime/include -I/home/ecegridfs/a/socet137/socet/vortex-f24/hw -g -O0 /home/ecegridfs/a/socet137/socet/vortex-f24/tests/regression/demo/main.cpp -L/home/ecegridfs/a/socet137/socet/vortex-f24/runtime -lvortex -o demo
+/home/ecegridfs/a/socet137/socet/vortex-f24/tools/llvm-vortex/bin/clang++ --sysroot=/home/ecegridfs/a/socet137/socet/vortex-f24/tools/riscv-gnu-toolchain/riscv32-unknown-elf --gcc-toolchain=/home/ecegridfs/a/socet137/socet/vortex-f24/tools/riscv-gnu-toolchain -Xclang -target-feature -Xclang +vortex -Xclang -target-feature -Xclang +zicond -mllvm -disable-loop-idiom-all  -march=rv32imaf -mabi=ilp32f -O3 -mcmodel=medany -fno-rtti -fno-exceptions -nostartfiles -nostdlib -fdata-sections -ffunction-sections -I/home/ecegridfs/a/socet137/socet/vortex-f24/kernel/include -I/home/ecegridfs/a/socet137/socet/vortex-f24/hw -DXLEN_32 -DNDEBUG /home/ecegridfs/a/socet137/socet/vortex-f24/tests/regression/demo/kernel.cpp -Wl,-Bstatic,--gc-sections,-T,/home/ecegridfs/a/socet137/socet/vortex-f24/kernel/scripts/link32.ld,--defsym=STARTUP_ADDR=0x80000000 -L/home/ecegridfs/a/socet137/socet/vortex-f24/tools/libc32/lib -lm -lc /home/ecegridfs/a/socet137/socet/vortex-f24/tools/libcrt32/lib/baremetal/libclang_rt.builtins-riscv32.a -o kernel.elf
+/home/ecegridfs/a/socet137/socet/vortex-f24/tools/riscv-gnu-toolchain/lib/gcc/riscv32-unknown-elf/12.2.0/../../../../bin/riscv32-unknown-elf-ld: warning: cannot find entry symbol _start; not setting start address
+OBJCOPY=/home/ecegridfs/a/socet137/socet/vortex-f24/tools/llvm-vortex/bin/llvm-objcopy /home/ecegridfs/a/socet137/socet/vortex-f24/kernel/scripts/vxbin.py kernel.elf kernel.vxbin
+LD_LIBRARY_PATH=/home/ecegridfs/a/socet137/socet/vortex-f24/runtime:/usr/local/lib64:/usr/local/lib:/usr/local/lib64:/usr/local/lib:/usr/local/lib64:/usr/local/lib: VORTEX_DRIVER=simx ./demo -n64
+open device connection
+Core ID: 0 has 4 number of threads and 4 number of FUNC_UNIT Lanes
+Core ID: 1 has 1 number of threads and 4 number of FUNC_UNIT Lanes
+CONFIGS: num_threads=4, num_warps=4, num_cores=2, num_clusters=1, socket_size=2, local_mem_base=0xffff0000, num_barriers=2
+[VXDRV] DEV_OPEN: hdevice=0x55ec91903ab0
+[VXDRV] DCR_WRITE: hdevice=0x55ec91903ab0, addr=0x1, value=0x80000000
+[VXDRV] DCR_WRITE: hdevice=0x55ec91903ab0, addr=0x2, value=0x0
+[VXDRV] DCR_WRITE: hdevice=0x55ec91903ab0, addr=0x3, value=0x0
+[VXDRV] DCR_WRITE: hdevice=0x55ec91903ab0, addr=0x4, value=0x0
+[VXDRV] DCR_WRITE: hdevice=0x55ec91903ab0, addr=0x5, value=0x0
+[VXDRV] DEV_CAPS: hdevice=0x55ec91903ab0, caps_id=3, value=2
+[VXDRV] DEV_CAPS: hdevice=0x55ec91903ab0, caps_id=2, value=4
+[VXDRV] DEV_CAPS: hdevice=0x55ec91903ab0, caps_id=1, value=4
+data type: float
+number of points: 2048
+buffer size: 8192 bytes
+allocate device memory
+[VXDRV] [RT:mem_alloc] size: 0x2000, asize, 0x2000,flag : 0x1
+[VXDRV] MEM_ALLOC: hdevice=0x55ec91903ab0, size=8192, flags=0x1, hbuffer=0x55ec91d5e4d0
+[VXDRV] MEM_ADDRESS: hbuffer=0x55ec91d5e4d0, address=0x10000
+[VXDRV] [RT:mem_alloc] size: 0x2000, asize, 0x2000,flag : 0x1
+[VXDRV] MEM_ALLOC: hdevice=0x55ec91903ab0, size=8192, flags=0x1, hbuffer=0x55ec91d5e4f0
+[VXDRV] MEM_ADDRESS: hbuffer=0x55ec91d5e4f0, address=0x12000
+[VXDRV] [RT:mem_alloc] size: 0x2000, asize, 0x2000,flag : 0x2
+[VXDRV] MEM_ALLOC: hdevice=0x55ec91903ab0, size=8192, flags=0x2, hbuffer=0x55ec91d5e510
+[VXDRV] MEM_ADDRESS: hbuffer=0x55ec91d5e510, address=0x14000
+dev_src0=0x10000
+dev_src1=0x12000
+dev_dst=0x14000
+allocate host buffers
+upload source buffer0
+[VXDRV] COPY_TO_DEV: hbuffer=0x55ec91d5e4d0, host_addr=0x55ec91c958e0, dst_offset=0, size=8192
+upload source buffer1
+[VXDRV] COPY_TO_DEV: hbuffer=0x55ec91d5e4f0, host_addr=0x55ec91c978f0, dst_offset=0, size=8192
+upload program
+[VXDRV] Error: 'vx_mem_reserve(hdevice, min_vma, runtime_size, 0, &_hbuffer)' returned -1!
+[VXDRV] Error: 'vx_upload_kernel_bytes(hdevice, content.data(), size, hbuffer)' returned -1!
+Error: 'vx_upload_kernel_file(device, kernel_file, &krnl_buffer)' returned -1!
+[VXDRV] MEM_FREE: hbuffer=0x55ec91d5e4d0
+[VXDRV] MEM_FREE: hbuffer=0x55ec91d5e4f0
+[VXDRV] MEM_FREE: hbuffer=0x55ec91d5e510
+[VXDRV] DEV_CAPS: hdevice=0x55ec91903ab0, caps_id=3, value=2
+[VXDRV] DEV_CAPS: hdevice=0x55ec91903ab0, caps_id=7, value=220126515488
+[VXDRV] DEV_CAPS: hdevice=0x55ec91903ab0, caps_id=8, value=8
+[VXDRV] MPM_QUERY: hdevice=0x55ec91903ab0, addr=0xb00, core_id=0, value=0xbaadf00dbaadf00d
+[VXDRV] MPM_QUERY: hdevice=0x55ec91903ab0, addr=0xb02, core_id=0, value=0xbaadf00dbaadf00d
+[VXDRV] MPM_QUERY: hdevice=0x55ec91903ab0, addr=0xb03, core_id=0, value=0xbaadf00dbaadf00d
+PERF: core0: scheduler idle=-4995072469926809587 (100%)
+[VXDRV] MPM_QUERY: hdevice=0x55ec91903ab0, addr=0xb04, core_id=0, value=0xbaadf00dbaadf00d
+PERF: core0: scheduler stalls=-4995072469926809587 (100%)
+[VXDRV] MPM_QUERY: hdevice=0x55ec91903ab0, addr=0xb05, core_id=0, value=0xbaadf00dbaadf00d
+PERF: core0: ibuffer stalls=-4995072469926809587 (100%)
+[VXDRV] MPM_QUERY: hdevice=0x55ec91903ab0, addr=0xb06, core_id=0, value=0xbaadf00dbaadf00d
+[VXDRV] MPM_QUERY: hdevice=0x55ec91903ab0, addr=0xb08, core_id=0, value=0xbaadf00dbaadf00d
+[VXDRV] MPM_QUERY: hdevice=0x55ec91903ab0, addr=0xb09, core_id=0, value=0xbaadf00dbaadf00d
+[VXDRV] MPM_QUERY: hdevice=0x55ec91903ab0, addr=0xb0a, core_id=0, value=0xbaadf00dbaadf00d
+[VXDRV] MPM_QUERY: hdevice=0x55ec91903ab0, addr=0xb0c, core_id=0, value=0xbaadf00dbaadf00d
+[VXDRV] MPM_QUERY: hdevice=0x55ec91903ab0, addr=0xb0d, core_id=0, value=0xbaadf00dbaadf00d
+PERF: core0: scoreboard stalls=-4995072469926809587 (100%) (alu=112%, fpu=112%, lsu=112%, csrs=112%, wctl=112%)
+[VXDRV] MPM_QUERY: hdevice=0x55ec91903ab0, addr=0xb07, core_id=0, value=0xbaadf00dbaadf00d
+PERF: core0: operands stalls=-4995072469926809587 (100%)
+[VXDRV] MPM_QUERY: hdevice=0x55ec91903ab0, addr=0xb0e, core_id=0, value=0xbaadf00dbaadf00d
+PERF: core0: ifetches=-4995072469926809587
+[VXDRV] MPM_QUERY: hdevice=0x55ec91903ab0, addr=0xb11, core_id=0, value=0xbaadf00dbaadf00d
+PERF: core0: ifetch latency=1 cycles
+[VXDRV] MPM_QUERY: hdevice=0x55ec91903ab0, addr=0xb0f, core_id=0, value=0xbaadf00dbaadf00d
+PERF: core0: loads=-4995072469926809587
+[VXDRV] MPM_QUERY: hdevice=0x55ec91903ab0, addr=0xb12, core_id=0, value=0xbaadf00dbaadf00d
+PERF: core0: load latency=1 cycles
+[VXDRV] MPM_QUERY: hdevice=0x55ec91903ab0, addr=0xb10, core_id=0, value=0xbaadf00dbaadf00d
+PERF: core0: stores=-4995072469926809587
+PERF: core0: instrs=-4995072469926809587, cycles=-4995072469926809587, IPC=1.000000
+[VXDRV] MPM_QUERY: hdevice=0x55ec91903ab0, addr=0xb00, core_id=1, value=0xbaadf00dbaadf00d
+[VXDRV] MPM_QUERY: hdevice=0x55ec91903ab0, addr=0xb02, core_id=1, value=0xbaadf00dbaadf00d
+[VXDRV] MPM_QUERY: hdevice=0x55ec91903ab0, addr=0xb03, core_id=1, value=0xbaadf00dbaadf00d
+PERF: core1: scheduler idle=-4995072469926809587 (100%)
+[VXDRV] MPM_QUERY: hdevice=0x55ec91903ab0, addr=0xb04, core_id=1, value=0xbaadf00dbaadf00d
+PERF: core1: scheduler stalls=-4995072469926809587 (100%)
+[VXDRV] MPM_QUERY: hdevice=0x55ec91903ab0, addr=0xb05, core_id=1, value=0xbaadf00dbaadf00d
+PERF: core1: ibuffer stalls=-4995072469926809587 (100%)
+[VXDRV] MPM_QUERY: hdevice=0x55ec91903ab0, addr=0xb06, core_id=1, value=0xbaadf00dbaadf00d
+[VXDRV] MPM_QUERY: hdevice=0x55ec91903ab0, addr=0xb08, core_id=1, value=0xbaadf00dbaadf00d
+[VXDRV] MPM_QUERY: hdevice=0x55ec91903ab0, addr=0xb09, core_id=1, value=0xbaadf00dbaadf00d
+[VXDRV] MPM_QUERY: hdevice=0x55ec91903ab0, addr=0xb0a, core_id=1, value=0xbaadf00dbaadf00d
+[VXDRV] MPM_QUERY: hdevice=0x55ec91903ab0, addr=0xb0c, core_id=1, value=0xbaadf00dbaadf00d
+[VXDRV] MPM_QUERY: hdevice=0x55ec91903ab0, addr=0xb0d, core_id=1, value=0xbaadf00dbaadf00d
+PERF: core1: scoreboard stalls=-4995072469926809587 (100%) (alu=112%, fpu=112%, lsu=112%, csrs=112%, wctl=112%)
+[VXDRV] MPM_QUERY: hdevice=0x55ec91903ab0, addr=0xb07, core_id=1, value=0xbaadf00dbaadf00d
+PERF: core1: operands stalls=-4995072469926809587 (100%)
+[VXDRV] MPM_QUERY: hdevice=0x55ec91903ab0, addr=0xb0e, core_id=1, value=0xbaadf00dbaadf00d
+PERF: core1: ifetches=-4995072469926809587
+[VXDRV] MPM_QUERY: hdevice=0x55ec91903ab0, addr=0xb11, core_id=1, value=0xbaadf00dbaadf00d
+PERF: core1: ifetch latency=1 cycles
+[VXDRV] MPM_QUERY: hdevice=0x55ec91903ab0, addr=0xb0f, core_id=1, value=0xbaadf00dbaadf00d
+PERF: core1: loads=-4995072469926809587
+[VXDRV] MPM_QUERY: hdevice=0x55ec91903ab0, addr=0xb12, core_id=1, value=0xbaadf00dbaadf00d
+PERF: core1: load latency=1 cycles
+[VXDRV] MPM_QUERY: hdevice=0x55ec91903ab0, addr=0xb10, core_id=1, value=0xbaadf00dbaadf00d
+PERF: core1: stores=-4995072469926809587
+PERF: core1: instrs=-4995072469926809587, cycles=-4995072469926809587, IPC=1.000000
+PERF: scheduler idle=8456599133855932442 (100%)
+PERF: scheduler stalls=8456599133855932442 (100%)
+PERF: ibuffer stalls=8456599133855932442 (100%)
+PERF: scoreboard stalls=8456599133855932442 (100%) (alu=156%, fpu=156%, lsu=156%, csrs=156%, wctl=156%)
+PERF: operands stalls=8456599133855932442 (100%)
+PERF: ifetches=8456599133855932442
+PERF: loads=8456599133855932442
+PERF: stores=8456599133855932442
+PERF: ifetch latency=1 cycles
+PERF: load latency=1 cycles
+PERF: instrs=8456599133855932442, cycles=-4995072469926809587, IPC=0.628665
+[VXDRV] DEV_CLOSE: hdevice=0x55ec91903ab0
+Core ID: 0 has 4 number of threads.
+Core ID: 1 has 1 number of threads.
+make: *** [../common.mk:89: run-simx] Error 255
+make: Leaving directory '/home/ecegridfs/a/socet137/socet/vortex-f24/tests/regression/demo'
