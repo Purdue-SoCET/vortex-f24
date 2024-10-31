@@ -1,4 +1,0 @@
-main.o: \
- /home/ecegridfs/a/socet137/socet/vortex-f24/tests/regression/demo/main.cpp \
- /home/ecegridfs/a/socet137/socet/vortex-f24/runtime/include/vortex.h \
- /home/ecegridfs/a/socet137/socet/vortex-f24/tests/regression/demo/common.h

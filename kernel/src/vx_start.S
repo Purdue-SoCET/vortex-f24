@@ -123,3 +123,12 @@ init_tls_all:
 	.weak __dso_handle
 __dso_handle:
 	.long	0
+
+.section .text
+.type vx_wspawn_wait, @function
+.global vx_wspawn_wait
+vx_wspawn_wait:
+  csrr  t0, VX_CSR_ACTIVE_WARPS
+  li    t1, 1
+  bne   t0, t1, vx_wspawn_wait
+  ret

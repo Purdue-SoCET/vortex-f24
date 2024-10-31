@@ -60,6 +60,8 @@ extern dim3_t blockDim;
 extern __thread uint32_t __local_group_id;
 extern uint32_t __warps_per_group;
 
+void vx_wspawn_wait();
+
 typedef void (*vx_kernel_func_cb)(void *arg);
 
 typedef void (*vx_serial_cb)(void *arg);

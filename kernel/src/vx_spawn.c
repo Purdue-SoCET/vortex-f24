@@ -72,7 +72,7 @@ static void __attribute__ ((noinline)) spawn_tasks_all_stub() {
   int warp_gid = (p_wspawn_args->warp_batches * NW) + wid; 
   int thread_gid = warp_gid * NT + tid + p_wspawn_args->all_tasks_offset; 
   // vx_printf("VXSpawn: cid=%d, wid=%d, tid=%d, wK=%d, tK=%d, offset=%d, taskids=%d-%d, fWindex=%d, warp_gid=%d, thread_gid=%d\n",cid, wid, tid, wK, tK, offset, (offset), (offset+tK-1),p_wspawn_args->fWindex,warp_gid,thread_gid);
-  vx_printf("VXSpawn: cid=%d, wid=%d, tid=%d, fWindex=%d, offset= %d, warp_gid=%d, thread_gid=%d\n",cid, wid, tid, p_wspawn_args->warp_batches,p_wspawn_args->all_tasks_offset,warp_gid,thread_gid);
+  // vx_printf("VXSpawn: cid=%d, wid=%d, tid=%d, fWindex=%d, offset= %d, warp_gid=%d, thread_gid=%d\n",cid, wid, tid, p_wspawn_args->warp_batches,p_wspawn_args->all_tasks_offset,warp_gid,thread_gid);
   callback(thread_gid);
 }
 static void __attribute__ ((noinline)) spawn_tasks_rem_stub() {
@@ -174,7 +174,7 @@ void vx_spawn_tasks(uint32_t num_tasks, vx_spawn_tasks_cb callback , void * arg)
       vx_tmc_one();
       
       // wait for spawn warps to terminate
-      // vx_wspawn_wait(); 
+      vx_wspawn_wait(); 
     }
     if(rW>0)
     {
@@ -194,7 +194,7 @@ void vx_spawn_tasks(uint32_t num_tasks, vx_spawn_tasks_cb callback , void * arg)
       vx_tmc_one();
       
       // wait for spawn warps to terminate
-      // vx_wspawn_wait(); 
+      vx_wspawn_wait(); 
     }
   }
 
@@ -326,7 +326,7 @@ void vx_spawn_priority_tasks(uint32_t num_tasks, int priority_tasks_offset, vx_s
       vx_tmc_one();
       
       // wait for spawn warps to terminate
-      // vx_wspawn_wait();
+      vx_wspawn_wait();
       }
       if(rW>0)
       {
@@ -346,7 +346,7 @@ void vx_spawn_priority_tasks(uint32_t num_tasks, int priority_tasks_offset, vx_s
         vx_tmc_one();
         
         // wait for spawn warps to terminate
-        // vx_wspawn_wait();
+        vx_wspawn_wait();
       }
     }  
   }
