@@ -100,6 +100,10 @@ extern "C" {
 inline void vx_tmc(int thread_mask) {
     __asm__ volatile (".insn r %0, 0, 0, x0, %1, x0" :: "i"(RISCV_CUSTOM0), "r"(thread_mask));
 }
+// .insn r %0, 0, 0, x0, %1, x0: This is a RISC-V custom instruction.
+// r: "register" format of the custom instruction.
+// %0: custom opcode, which corresponds to RISCV_CUSTOM0.
+// %1: the thread_mask value, which controls which threads are active.
 
 // disable all threads in the current warp
 inline void vx_tmc_zero() {
@@ -129,6 +133,12 @@ typedef void (*vx_wspawn_pfn)();
 inline void vx_wspawn(int num_warps, vx_wspawn_pfn func_ptr) {
     __asm__ volatile (".insn r %0, 1, 0, x0, %1, %2" :: "i"(RISCV_CUSTOM0), "r"(num_warps), "r"(func_ptr));
 }
+// The instruction .insn r %0, 1, 0, x0, %1, %2 is a RISC-V custom instruction. Here's how the operands map:
+
+//     %0 (immediate RISCV_CUSTOM0) specifies the custom opcode.
+//     x0 is likely a placeholder for a zero-register (indicating no need for an additional operand here).
+//     %1 holds the number of warps (num_warps).
+//     %2 holds the function pointer (func_ptr).
 
 // Split on a predicate
 inline int vx_split(int predicate) {

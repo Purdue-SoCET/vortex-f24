@@ -298,6 +298,7 @@ inline std::ostream &operator<<(std::ostream &os, const LsuRsp& rsp) {
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+// Memory request
 
 struct MemReq {
   uint64_t addr;
@@ -331,6 +332,7 @@ inline std::ostream &operator<<(std::ostream &os, const MemReq& req) {
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+// Memory response
 
 struct MemRsp {
   uint64_t tag;
