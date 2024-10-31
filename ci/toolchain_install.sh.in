@@ -34,7 +34,7 @@ riscv32()
     done
     cat riscv32-gnu-toolchain.tar.bz2.parta* > riscv32-gnu-toolchain.tar.bz2
     tar -xvf riscv32-gnu-toolchain.tar.bz2
-    mkdir -p $TOOLDIR && rm -rf $TOOLDIR/riscv32-gnu-toolchain && mv riscv32-gnu-toolchain $RISCV_TOOLCHAIN_PATH
+    mkdir -p $TOOLDIR && rm -rf $TOOLDIR/riscv32-gnu-toolchain && mv riscv32-gnu-toolchain $TOOLDIR
     rm -rf riscv32-gnu-toolchain.tar.bz2*
 }
 
@@ -51,7 +51,7 @@ riscv64()
     done
     cat riscv64-gnu-toolchain.tar.bz2.parta* > riscv64-gnu-toolchain.tar.bz2
     tar -xvf riscv64-gnu-toolchain.tar.bz2
-    mkdir -p $TOOLDIR && rm -rf $TOOLDIR/riscv64-gnu-toolchain && mv riscv64-gnu-toolchain $RISCV_TOOLCHAIN_PATH
+    mkdir -p $TOOLDIR && rm -rf $TOOLDIR/riscv64-gnu-toolchain && mv riscv64-gnu-toolchain $TOOLDIR
     rm -rf riscv64-gnu-toolchain riscv64-gnu-toolchain.tar.bz2*
 }
 
