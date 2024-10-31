@@ -16,6 +16,8 @@
 #include <newlib.h>
 #include "common.h"
 
+#define RISCV_CUSTOM0   0x0B
+
 .section .init, "ax"
 .global _start
 .type   _start, @function
@@ -31,6 +33,9 @@ _start:
   li    t0, 1
   .insn r RISCV_CUSTOM0, 0, 0, x0, t0, x0  # tmc t0
 
+  # wait for spawn warps to terminate
+  jal vx_wspawn_wait
+
   # initialize TLS for all warps
   csrr  t0, VX_CSR_NUM_WARPS  # get num warps
   la    t1, init_tls_all
@@ -40,6 +45,9 @@ _start:
   call  __init_tls
   li    t0, 1
   .insn r RISCV_CUSTOM0, 0, 0, x0, t0, x0  # tmc t0
+
+  # wait for spawn warps to terminate
+  jal vx_wspawn_wait
 
   # clear BSS segment
   la    a0, _edata
@@ -116,6 +124,15 @@ init_tls_all:
   .insn r RISCV_CUSTOM0, 0, 0, x0, t0, x0  # tmc t0
   call  __init_tls
   .insn r RISCV_CUSTOM0, 0, 0, x0, x0, x0  # tmc x0
+  ret
+
+.section .text
+.type vx_wspawn_wait, @function
+.global vx_wspawn_wait
+vx_wspawn_wait:
+  csrr  t0, VX_CSR_ACTIVE_WARPS
+  li    t1, 1
+  bne   t0, t1, vx_wspawn_wait
   ret
 
 .section .data
