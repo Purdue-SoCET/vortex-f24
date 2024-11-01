@@ -41,7 +41,7 @@ Core::Core(const SimContext& ctx,
   , socket_(socket)
   , arch_(arch)
   , emulator_(arch, dcrs, this)
-  , ibuffers_(100*arch.num_warps(), IBUF_SIZE) //larger ibuffer?
+  , ibuffers_(arch.num_warps(), IBUF_SIZE) //larger ibuffer?
   , scoreboard_(arch_)
   , operands_(ISSUE_WIDTH)
   , dispatchers_((uint32_t)FUType::Count)
@@ -155,6 +155,11 @@ Core::Core(const SimContext& ctx,
 
 Core::~Core() {
   std::cout << "Core ID: " << this->core_id_ << " has " << this->arch_.num_threads() << " thread(s) and " << this->arch_.num_warps() << " warp(s)." << std::endl;
+  int branch_pred_accuracy = (1 - (double)perf_stats_.wrong_pred / (double) perf_stats_.total_branches) * 100;
+  std::cout << "Wrong Pred: " << perf_stats_.wrong_pred << std::endl;
+  std::cout << "Correct Pred: " << (perf_stats_.total_branches - perf_stats_.wrong_pred) << std::endl;
+  std::cout << "Total Branches: " << perf_stats_.total_branches << std::endl;
+  std::cout << "Core ID: " << this->core_id_ << " has branch pred accuracy of " << branch_pred_accuracy << "%" << std::endl;
 }
 
 void Core::reset() {
@@ -234,7 +239,8 @@ void Core::scalar_schedule() {
   // emulator_.suspend(trace->wid);
 
   if (this->branch_mispred_flush) { // On a flush, clear the latch
-    std::cout << "Flushing pipeline-schedule" << std::endl;  
+    std::cout << "Flushing pipeline-schedule" << std::endl;
+    // --pending_instrs_; 
     fetch_latch_.clear(); 
     return; 
   }
@@ -279,6 +285,8 @@ void Core::fetch() {
 }
 
 void Core::scalar_fetch() {
+  // std::cout << "Pending_ifetch count: " << pending_ifetches_ << std::endl; 
+
   perf_stats_.ifetch_latency += pending_ifetches_;
 
   // handle icache response
@@ -290,25 +298,14 @@ void Core::scalar_fetch() {
   if (this->squash_in_progress) { 
     if (!icache_rsp_port.empty()) {
       std::cout << "Squashing icache-rsp in pipeline-fetch" << std::endl;
-
       // auto& mem_rsp = icache_rsp_port.front();
       // auto trace = pending_icache_.at(mem_rsp.tag);
       // DT(3, "Dropping icache-rsp: addr=0x" << std::hex << trace->PC << ", tag=0x" << mem_rsp.tag << std::dec << ", " << *trace);
       // pending_icache_.release(mem_rsp.tag);
 
       icache_rsp_port.pop();
-      --pending_instrs_; 
+      // --pending_instrs_; 
       // --pending_ifetches_;
-    }
-  } else {
-    if (!icache_rsp_port.empty()) {
-      auto& mem_rsp = icache_rsp_port.front();
-      auto trace = pending_icache_.at(mem_rsp.tag);
-      decode_latch_.push(trace);
-      DT(3, "icache-rsp: addr=0x" << std::hex << trace->PC << ", tag=0x" << mem_rsp.tag << std::dec << ", " << *trace);
-      pending_icache_.release(mem_rsp.tag);
-      icache_rsp_port.pop();
-      --pending_ifetches_;
     }
   }
 
@@ -317,9 +314,21 @@ void Core::scalar_fetch() {
     decode_latch_.clear(); 
     fetch_latch_.clear();
     // pending_icache_.clear();
-    pending_instrs_ -= pending_ifetches_;  
+    // pending_instrs_ -= pending_ifetches_;  
     pending_ifetches_ = 0; 
     return; 
+  }
+
+  if (!icache_rsp_port.empty()) {
+    auto& mem_rsp = icache_rsp_port.front();
+    auto trace = pending_icache_.at(mem_rsp.tag);
+    decode_latch_.push(trace);
+    DT(3, "icache-rsp: addr=0x" << std::hex << trace->PC << ", tag=0x" << mem_rsp.tag << std::dec << ", " << *trace);
+    pending_icache_.release(mem_rsp.tag);
+    icache_rsp_port.pop();
+    if (pending_ifetches_ > 0) { //idk why this is needed
+      --pending_ifetches_;
+    }
   }
 
   if (fetch_latch_.empty()) {
@@ -383,7 +392,7 @@ void Core::scalar_decode() {
 
   if (this->branch_mispred_flush) { //Flush before any stalling on mispredict
     std::cout << "Flushing pipeline-decode" << std::endl; 
-    ibuffer.clear(); 
+    // --pending_instrs_; 
     decode_latch_.clear(); 
     return;
   }
@@ -566,9 +575,11 @@ void Core::scalar_issue() {
         }
       } else {
         trace->log_once(false);
+        
         if (this->branch_mispred_flush) {
           scoreboard_.clear();
           ibuffer.pop(); 
+          // --pending_instrs_; 
           break; 
         } else {
           // update scoreboard
@@ -622,6 +633,7 @@ void Core::scalar_execute() {
       if ((trace->alu_type == AluType::BRANCH) & (i == (uint32_t)FUType::ALU)) { //Check that instruction in ALU is a branch/jump (IDLE to DRAIN)
         // Check that execute stage is empty (DRAIN to FIRE)
         // The input and output of each func_unit is empty
+        perf_stats_.total_branches++; 
         bool fire = func_units_.at((uint32_t) FUType::ALU)->Inputs.at(j).empty() & func_units_.at((uint32_t) FUType::FPU)->Inputs.at(j).empty() & 
         func_units_.at((uint32_t) FUType::LSU)->Inputs.at(j).empty() & func_units_.at((uint32_t) FUType::SFU)->Inputs.at(j).empty() &
         func_units_.at((uint32_t) FUType::ALU)->Outputs.at(j).empty() & func_units_.at((uint32_t) FUType::FPU)->Outputs.at(j).empty() & 
@@ -634,13 +646,21 @@ void Core::scalar_execute() {
           func_unit->Inputs.at(j).push(trace, 2);
           dispatch->Outputs.at(j).pop();
           if (trace->branch_mispred_flush) {
-            this->branch_mispred_flush = true; 
+            std::cout << "Branch Mispredicted! Flushing pipeling! Branch Instr: " << *trace << std::endl;
+            this->branch_mispred_flush = true;
+            perf_stats_.wrong_pred++; 
+            emulator_.update_execute(trace->wid, trace->next_pc, trace->next_tmask); //Update the next_pc and next_tmask in the execute stage 
+            pending_instrs_ = 0; 
           }
         }
       } else {
         // Otherwise can send it to a func_unit as normal
         func_unit->Inputs.at(j).push(trace, 2);
         dispatch->Outputs.at(j).pop();
+
+        if (trace->lsu_type == LsuType::LOAD || trace->lsu_type == LsuType::STORE) {
+          emulator_.update_memory(); 
+        }
       }
     }
   }
@@ -711,6 +731,8 @@ void Core::scalar_commit() {
 
     commit_arb->Outputs.at(0).pop();
 
+    emulator_.update_commit(trace->wid, trace->dst_reg.type, trace->dst_reg.idx, trace->rddata, trace->wb); 
+
     // delete the trace
     delete trace;
   }
@@ -721,6 +743,7 @@ int Core::get_exitcode() const {
 }
 
 bool Core::running() const {
+  DT(3, "Pending Instrs: " << pending_instrs_);
   return emulator_.running() || (pending_instrs_ != 0);
 }
 

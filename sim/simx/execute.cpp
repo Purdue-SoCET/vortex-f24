@@ -35,7 +35,7 @@ union reg_data_t {
   float    f32;
   double   f64;
   uint32_t u32;
-  uint64_t u64;
+  uint64_t u64; 
   int32_t  i32;
   int64_t  i64;
 };
@@ -630,8 +630,8 @@ void Emulator::execute(const Instr &instr, uint32_t wid, instr_trace_t *trace) {
         std::abort();
       }
       // Branch mispredicted if it should have been taken and core is scalar
-      if (!curr_taken && arch_.num_threads() == 1) {
-        std::cout << "Branch Mispredicted! Flushing pipeling! PC=0x" << std::hex << warp.PC << std::dec << " (#" << trace->uuid << ")\n" << std::flush;
+      // Datapath set up to assume not taken, so it was wrong if branch was taken
+      if (curr_taken && arch_.num_threads() == 1) {
         trace->branch_mispred_flush = true; 
       }
 
@@ -1430,6 +1430,41 @@ void Emulator::execute(const Instr &instr, uint32_t wid, instr_trace_t *trace) {
     std::abort();
   }
 
+  // if (arch_.num_threads() == 1) {
+  //   for (uint32_t t = 0; t < num_threads; ++t) { //Save relevant data into the trace
+  //     trace->rddata[t].u = rddata[t].u;
+  //     trace->rddata[t].i = rddata[t].i;
+  //     trace->rddata[t].f = rddata[t].f;
+  //     trace->rddata[t].f32 = rddata[t].f32;
+  //     trace->rddata[t].f64 = rddata[t].f64; 
+  //     trace->rddata[t].u32 = rddata[t].u32; 
+  //     trace->rddata[t].u64 = rddata[t].u64; 
+  //     trace->rddata[t].i32 = rddata[t].i32; 
+  //     trace->rddata[t].i64 = rddata[t].i64; 
+  //   }
+
+  //   if (rd_write) {
+  //     trace->wb = true;
+  //     auto type = instr.getRDType();
+  //     switch (type) {
+  //     case RegType::Integer:
+  //       if (rdest) {
+  //         trace->dst_reg = {type, rdest};
+  //         assert(rdest != 0);
+  //       } else {
+  //         // disable writes to x0
+  //         trace->wb = false;
+  //       }
+  //       break;
+  //     case RegType::Float:
+  //       trace->dst_reg = {type, rdest};
+  //       break;
+  //     default:
+  //       std::abort();
+  //       break;
+  //     }
+  //   }  
+  // } else {
   if (rd_write) {
     trace->wb = true;
     auto type = instr.getRDType();
@@ -1473,9 +1508,15 @@ void Emulator::execute(const Instr &instr, uint32_t wid, instr_trace_t *trace) {
       break;
     }
   }
+  // }
 
-  warp.PC += 4;
 
+  // Assume not taken for scalar core (but store the potential next_pc in trace)
+  // if (arch_.num_threads() == 1) {
+  //   warp.PC += 4;
+  //   trace->next_pc = next_pc; 
+  //   trace->next_tmask = next_tmask; 
+  // } else {
   if (warp.PC != next_pc) {
     DP(3, "*** Next PC=0x" << std::hex << next_pc << std::dec);
     warp.PC = next_pc;
@@ -1491,4 +1532,8 @@ void Emulator::execute(const Instr &instr, uint32_t wid, instr_trace_t *trace) {
       active_warps_.reset(wid);
     }
   }
+  // }
+
+
+
 }

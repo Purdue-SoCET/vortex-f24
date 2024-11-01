@@ -20,6 +20,8 @@
 #include <mem.h>
 #include "types.h"
 
+#include "instr_trace.h"
+
 namespace vortex {
 
 class Arch;
@@ -58,6 +60,10 @@ public:
   int get_exitcode() const;
 
   uint32_t get_core_id();
+
+  void update_execute(uint32_t wid, Word next_pc, ThreadMask next_tmask);
+
+  void update_commit(uint32_t wid, RegType type, uint32_t rdest, std::vector<instr_trace_t::reg_data_t> rddata, bool wb);
 
 private:
 

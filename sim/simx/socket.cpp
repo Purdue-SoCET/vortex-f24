@@ -90,7 +90,7 @@ Socket::Socket(const SimContext& ctx,
     }
   }
 
-  // Create the scalar cores
+  // Create the scalar cores (this doesn't run right now)
   for (uint32_t i = cores_per_socket/2; i < cores_per_socket; ++i) {
     uint32_t core_id = socket_id * cores_per_socket + i;
     cores_.at(i) = Core::Create(core_id, this, arch_sclr, dcrs);

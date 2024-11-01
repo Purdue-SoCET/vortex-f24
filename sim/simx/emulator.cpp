@@ -230,6 +230,71 @@ uint32_t Emulator::get_core_id() {
   return core_->id(); 
 }
 
+void Emulator::update_execute(uint32_t wid, Word next_pc, ThreadMask next_tmask) {
+  auto& warp = warps_.at(wid);
+  if (warp.PC != next_pc) {
+    DP(3, "*** Next PC=0x" << std::hex << next_pc << std::dec);
+    warp.PC = next_pc;
+  } 
+
+  if (warp.tmask != next_tmask) {
+    DPH(3, "*** New Tmask=");
+    for (uint32_t i = 0; i < arch_.num_threads(); ++i)
+      DPN(3, next_tmask.test(i));
+    DPN(3, std::endl);
+    warp.tmask = next_tmask;
+    if (!next_tmask.any()) {
+      active_warps_.reset(wid);
+    }
+  } 
+}
+
+void Emulator::update_memory() {
+  
+}
+
+void Emulator::update_commit(uint32_t wid, RegType type, uint32_t rdest, std::vector<instr_trace_t::reg_data_t> rddata, bool wb) {
+  auto& warp = warps_.at(wid);
+  if (wb) {
+    switch (type) {
+    case RegType::Integer:
+      if (rdest) {
+        DPH(2, "Dest Reg: " << type << rdest << "={");
+        for (uint32_t t = 0; t < arch_.num_threads(); ++t) {
+          if (t) DPN(2, ", ");
+          if (!warp.tmask.test(t)) {
+            DPN(2, "-");
+            continue;
+          }
+          warp.ireg_file.at(t)[rdest] = rddata[t].i;
+          DPN(2, "0x" << std::hex << rddata[t].i << std::dec);
+        }
+        DPN(2, "}" << std::endl);
+        assert(rdest != 0);
+      } else {
+        // disable writes to x0
+      }
+      break;
+    case RegType::Float:
+      DPH(2, "Dest Reg: " << type << rdest << "={");
+      for (uint32_t t = 0; t < arch_.num_threads(); ++t) {
+        if (t) DPN(2, ", ");
+        if (!warp.tmask.test(t)) {
+          DPN(2, "-");
+          continue;
+        }
+        warp.freg_file.at(t)[rdest] = rddata[t].u64;
+        DPN(2, "0x" << std::hex << rddata[t].f << std::dec);
+      }
+      DPN(2, "}" << std::endl);
+      break;
+    default:
+      std::abort();
+      break;
+    }
+  }
+}
+
 void Emulator::suspend(uint32_t wid) {
   assert(!stalled_warps_.test(wid));
   stalled_warps_.set(wid);

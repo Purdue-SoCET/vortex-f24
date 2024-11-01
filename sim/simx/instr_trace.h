@@ -50,6 +50,18 @@ public:
     uint32_t idx;
   };
 
+  struct reg_data_t {
+    Word     u;
+    WordI    i;
+    WordF    f;
+    float    f32;
+    double   f64;
+    uint32_t u32;
+    uint64_t u64;
+    int32_t  i32;
+    int64_t  i64;
+  };
+
   //--
   const uint64_t uuid;
   Arch&    arch;
@@ -87,9 +99,14 @@ public:
 
   bool fetch_stall;
 
+  //--
   bool branch_mispred_flush; 
+  bool halt;
+  Word next_pc;  
+  ThreadMask  next_tmask;
+  std::vector<reg_data_t> rddata;
 
-  bool halt; 
+
 
   instr_trace_t(uint64_t uuid, Arch& arch)
     : uuid(uuid)
@@ -110,6 +127,9 @@ public:
     , fetch_stall(false)
     , branch_mispred_flush(false)
     , halt(false)
+    , next_pc(0)
+    , next_tmask(0)
+    , rddata(1, reg_data_t{0,0,0,0,0,0,0,0,0}) // Only used on scalar core so vector is 1 unit long
     , log_once_(false)
   {}
 
@@ -132,6 +152,9 @@ public:
     , fetch_stall(rhs.fetch_stall)
     , branch_mispred_flush(rhs.branch_mispred_flush)
     , halt(rhs.halt)
+    , next_pc(rhs.next_pc)
+    , next_tmask(rhs.next_tmask)
+    , rddata(rhs.rddata)
     , log_once_(false)
   {}
 
