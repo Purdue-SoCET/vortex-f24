@@ -21,7 +21,6 @@
 extern "C" {
 #endif
 
-
 typedef union {
   struct {
     uint32_t x;
@@ -31,6 +30,13 @@ typedef union {
   uint32_t m[3];
 } dim3_t;
 
+extern __thread dim3_t blockIdx;
+extern __thread dim3_t threadIdx;
+extern dim3_t gridDim;
+extern dim3_t blockDim;
+
+extern __thread uint32_t __local_group_id;
+extern uint32_t __warps_per_group;
 
 typedef struct {
   uint32_t num_groups[3];
@@ -42,6 +48,8 @@ typedef struct {
   uint32_t work_dim;
 } context_t;
 
+typedef void (*vx_kernel_func_cb)(void *arg);
+typedef void (*vx_spawn_tasks_cb)(int task_id, void *arg);
 typedef void (*vx_spawn_kernel_cb) (
   const void * /* arg */,
 	const context_t * /* context */,
@@ -49,20 +57,6 @@ typedef void (*vx_spawn_kernel_cb) (
 	uint32_t /* group_y */,
 	uint32_t /* group_z */
 );
-
-typedef void (*vx_spawn_tasks_cb)(int task_id, void *arg);
-
-extern __thread dim3_t blockIdx;
-extern __thread dim3_t threadIdx;
-extern dim3_t gridDim;
-extern dim3_t blockDim;
-
-extern __thread uint32_t __local_group_id;
-extern uint32_t __warps_per_group;
-
-void vx_wspawn_wait();
-
-typedef void (*vx_kernel_func_cb)(void *arg);
 
 typedef void (*vx_serial_cb)(void *arg);
 
@@ -78,13 +72,16 @@ int vx_spawn_threads(uint32_t dimension,
                      const uint32_t* block_dim,
                      vx_kernel_func_cb kernel_func,
                      const void* arg);
-void vx_spawn_tasks(uint32_t num_tasks, vx_spawn_tasks_cb callback , void * arg);
-void vx_spawn_priority_tasks(uint32_t num_tasks, int priority_tasks_offset, vx_spawn_tasks_cb callback , void * arg);
 
 // function call serialization
 void vx_serial(vx_serial_cb callback, const void * arg);
 
-typedef void (*vx_spawn_tasks_cb)(int task_id, void *arg);
+void vx_spawn_priority_tasks(int num_tasks, int priority_tasks_offset,
+                              vx_spawn_tasks_cb callback, void *arg);
+
+void vx_spawn_tasks(int num_tasks, vx_spawn_tasks_cb callback, void *arg);
+
+void vx_wspawn_wait();
 
 #ifdef __cplusplus
 }

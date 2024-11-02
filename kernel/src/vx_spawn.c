@@ -1,4 +1,4 @@
-// Copyright Â© 2019-2023
+// Copyright © 2019-2023
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,16 +15,17 @@
 #include <vx_intrinsics.h>
 #include <vx_print.h>
 
+#define NUM_CORES_MAX 1024
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-#define NUM_CORES_MAX 1024
-void* g_wspawn_args[NUM_CORES_MAX];
-
 #ifndef MIN
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 #endif
+
+//////////////////// vx_kernel_func_cb -> vx_spawn_tasks_cb ? /////////////////////////////
 
 __thread dim3_t blockIdx;
 __thread dim3_t threadIdx;
@@ -46,7 +47,7 @@ typedef struct {
 } wspawn_groups_args_t;
 
 typedef struct {
-	vx_spawn_tasks_cb callback;
+	vx_kernel_func_cb callback;
 	const void* arg;
 	uint32_t all_tasks_offset;
   uint32_t remain_tasks_offset;
@@ -54,41 +55,62 @@ typedef struct {
 	uint32_t remaining_warps;
 } wspawn_threads_args_t;
 
-// Stub Function
-static void __attribute__ ((noinline)) spawn_tasks_all_stub() {
-  int NT  = vx_num_threads();
-  int NW = vx_num_warps();
-  int cid = vx_core_id();
-  int wid = vx_warp_id();
-  int tid = vx_thread_id();
+// FROM OLD SCLR --------------------------------------
 
-  // Changed struct 
-  wspawn_threads_args_t* p_wspawn_args = (wspawn_threads_args_t*)g_wspawn_args[cid];
+typedef struct {
+    vx_spawn_tasks_cb callback;
+    void *arg;
+    int offset;  // task offset
+    int NWs;     // number of NW batches where NW=<total warps per core>.
+    int RWs;     // number of remaining warps in the core
+    int fWindex; // nth rotation of a full warp
+} wspawn_tasks_args_t;
 
-  // Change type for callback
-  vx_kernel_func_cb callback = p_wspawn_args->callback;
-  void* arg = p_wspawn_args->arg;
+typedef struct {
+    context_t *ctx;
+    vx_spawn_kernel_cb callback;
+    void *arg;
+    int offset; // task offset
+    int NWs;    // number of NW batches where NW=<total warps per core>.
+    int RWs;    // number of remaining warps in the core
+    char isXYpow2;
+    char log2XY;
+    char log2X;
+} wspawn_kernel_args_t;
 
-  int warp_gid = (p_wspawn_args->warp_batches * NW) + wid; 
-  int thread_gid = warp_gid * NT + tid + p_wspawn_args->all_tasks_offset; 
-  // vx_printf("VXSpawn: cid=%d, wid=%d, tid=%d, wK=%d, tK=%d, offset=%d, taskids=%d-%d, fWindex=%d, warp_gid=%d, thread_gid=%d\n",cid, wid, tid, wK, tK, offset, (offset), (offset+tK-1),p_wspawn_args->fWindex,warp_gid,thread_gid);
-  // vx_printf("VXSpawn: cid=%d, wid=%d, tid=%d, fWindex=%d, offset= %d, warp_gid=%d, thread_gid=%d\n",cid, wid, tid, p_wspawn_args->warp_batches,p_wspawn_args->all_tasks_offset,warp_gid,thread_gid);
-  callback(thread_gid);
+// ----------------------------------------------------------
+
+void (*return_handler_ptr)();
+void (*interrupt_simt_handler_ptr)();
+void *g_wspawn_args[NUM_CORES_MAX];
+
+
+inline char is_log2(int x) {
+  return ((x & (x - 1)) == 0);
 }
-static void __attribute__ ((noinline)) spawn_tasks_rem_stub() {
-  int cid = vx_core_id();
-  int tid = vx_thread_id();
-  
-  wspawn_threads_args_t* p_wspawn_args = (wspawn_threads_args_t*)g_wspawn_args[cid];
-  int task_id = p_wspawn_args->all_tasks_offset + tid;
+
+
+inline int fast_log2(int x) {
+  float f = x;
+  return (*(int *)(&f) >> 23) - 127;
+}
+
+
+static void __attribute__((noinline)) spawn_tasks_all_stub() {
+}
+
+static void __attribute__((noinline)) spawn_tasks_rem_stub() {
+  int core_id_tasks_rem_stub    = vx_core_id();
+  int thread_id_tasks_rem_stub  = vx_thread_id();
+
+  wspawn_tasks_args_t *p_wspawn_args = (wspawn_tasks_args_t *) g_wspawn_args[core_id_tasks_rem_stub];
+  int task_id = p_wspawn_args->offset + thread_id_tasks_rem_stub;
   (p_wspawn_args->callback)(task_id, p_wspawn_args->arg);
 }
 
-static void __attribute__ ((noinline)) spawn_tasks_all_cb() {  
+static void __attribute__((noinline)) spawn_tasks_all_cb() {
   // activate all threads
   vx_tmc(-1);
-
-  // vx_tmc_one();
 
   // call stub routine
   spawn_tasks_all_stub();
@@ -97,69 +119,64 @@ static void __attribute__ ((noinline)) spawn_tasks_all_cb() {
   vx_tmc_zero();
 }
 
-//---------------------------------------------------------------------------------------------
-
-// First Function
-//---------------------------------------------------------------------------------------------
-void vx_spawn_tasks(uint32_t num_tasks, vx_spawn_tasks_cb callback , void * arg) {
-	// device specs
-  
-  int NC_total = vx_num_cores();
-  int NC = NC_total/2;
-  int NW = vx_num_warps();
-  int NT = vx_num_threads();
+void vx_spawn_tasks(int num_tasks, vx_spawn_tasks_cb callback, void *arg) {
+  int num_cores_total_spawn_tasks = vx_num_cores();
+  int num_cores_spawn_tasks       = num_cores_total_spawn_tasks / 2;
+  int num_warps_spawn_tasks       = vx_num_warps();
+  int num_threads_spawn_tasks     = vx_num_threads();
 
   // current core id
   int core_id = vx_core_id();
+
   // assign non-priority tasks only to the first half cores
-  if (core_id >= (NC_total/2)) ///2
-  {
-    vx_printf("Vx_spawn_tasks core_id too high, so returning core_id:%d, total cores=%d\n", core_id, NC_total);
+  if (core_id >= (num_cores_total_spawn_tasks / 2)) {
+    // 2
+    vx_printf("Vx_spawn_tasks core_id too high, so returning core_id:%d, total cores=%d\n",
+              core_id, num_cores_total_spawn_tasks);
     return;
   }
 
-  vx_printf("VXspawn starting spawn,  core_id=%d\n",core_id);
+  vx_printf("VXspawn starting spawn,  core_id=%d\n", core_id);
   // calculate necessary active cores
-  int WT = NW * NT;
+  int WT = num_warps_spawn_tasks * num_threads_spawn_tasks;
   int nC1 = (num_tasks > WT) ? (num_tasks / WT) : 1;
-  int nc = MIN(nC1, NC_total/2);
-  int nCoreIDMax = nc-1;
-  if (core_id > nCoreIDMax)
-  {
-    vx_printf("VXspawn returning coz core_id=%d >= nc=%d nCoreIDMax=%d\n (nC1=%d, NC_total/2=%d)",core_id,nc,nCoreIDMax, nC1, NC_total/2);
+  int nc = MIN(nC1, num_cores_total_spawn_tasks / 2);
+  int nCoreIDMax = nc - 1;
+  if (core_id > nCoreIDMax) {
+    vx_printf("VXspawn returning coz core_id=%d >= nc=%d nCoreIDMax=%d\n "
+              "(nC1=%d, num_cores_total_spawn_tasks/2=%d)",
+              core_id, nc, nCoreIDMax, nC1, num_cores_total_spawn_tasks / 2);
     return; // terminate extra cores
   }
-    
 
   // number of tasks per core
   int tasks_per_core = num_tasks / nc;
-  int tasks_per_core_n1 = tasks_per_core;  
-  if (core_id == (nc-1)) {    
-    int rem = num_tasks - (nc * tasks_per_core); 
+  int tasks_per_core_n1 = tasks_per_core;
+  if (core_id == (nc - 1)) {
+    int rem = num_tasks - (nc * tasks_per_core);
     tasks_per_core_n1 += rem; // last core also executes remaining tasks
   }
 
   // number of tasks per warp
-  int TW = tasks_per_core_n1 / NT;      // occupied warps
-  int rT = tasks_per_core_n1 - TW * NT; // remaining threads
+  int TW = tasks_per_core_n1 / num_threads_spawn_tasks;      // occupied warps
+  int rT = tasks_per_core_n1 - TW * num_threads_spawn_tasks; // remaining threads
   // TW = tasks_per_core_n1;
   // rT = 0;
   int fW = 1, rW = 0;
-  if (TW >= NW) {
-    fW = TW / NW;			                  // full warps iterations
-    rW = TW - fW * NW;                  // remaining warps
+  if (TW >= num_warps_spawn_tasks) {
+    fW = TW / num_warps_spawn_tasks;      // full warps iterations
+    rW = TW - fW * num_warps_spawn_tasks; // remaining warps
   }
-  
-  wspawn_threads_args_t wspawn_args = { callback, arg, core_id * tasks_per_core, fW, rW,0 };
+
+  wspawn_tasks_args_t wspawn_args = {callback, arg, core_id * tasks_per_core, fW, rW, 0};
   g_wspawn_args[core_id] = &wspawn_args;
-  int nw = MIN(TW, NW);
-  vx_printf("VXSpawn: core_id=%d num_tasks=%d NC=%d NW=%d NT=%d WT=%d nC1=%d nc=%d tasks_per_core_n1=%d TW=%d rT=%d fW=%d rW=%d offset=%d nw=%d\n", core_id, num_tasks,NC, NW, NT,WT, nC1, nc, tasks_per_core_n1, TW, rT, fW, rW, core_id*tasks_per_core, nw);
-	if(TW>=1)
-  {
-  for (int i=0; i<fW; i++)
-    {
+  int nw = MIN(TW, num_warps_spawn_tasks);
+  vx_printf("VXSpawn: core_id=%d num_tasks=%d num_cores_spawn_tasks=%d num_warps_spawn_tasks=%d num_threads_spawn_tasks=%d WT=%d nC1=%d nc=%d tasks_per_core_n1=%d TW=%d rT=%d fW=%d rW=%d offset=%d nw=%d\n", core_id, num_tasks, num_cores_spawn_tasks, num_warps_spawn_tasks, num_threads_spawn_tasks, WT, nC1, nc, tasks_per_core_n1, TW, rT, fW, rW, core_id * tasks_per_core, nw);
+  if (TW >= 1) {
+    for (int i = 0; i < fW; i++) {
       // execute callback on other warps
-      wspawn_args.warp_batches = i;
+      wspawn_args.fWindex = i;
+      // go off right here.
       vx_wspawn(nw, spawn_tasks_all_cb);
 
       // activate all threads
@@ -169,17 +186,17 @@ void vx_spawn_tasks(uint32_t num_tasks, vx_spawn_tasks_cb callback , void * arg)
 
       // call stub routine
       spawn_tasks_all_stub();
-    
+
       // back to single-threaded
       vx_tmc_one();
-      
+
       // wait for spawn warps to terminate
-      vx_wspawn_wait(); 
+      vx_wspawn_wait();
     }
-    if(rW>0)
-    {
+
+    if (rW > 0) {
       // execute callback on other warps
-      wspawn_args.warp_batches = fW;
+      wspawn_args.fWindex = fW;
       vx_wspawn(rW, spawn_tasks_all_cb);
 
       // activate all threads
@@ -189,21 +206,21 @@ void vx_spawn_tasks(uint32_t num_tasks, vx_spawn_tasks_cb callback , void * arg)
 
       // call stub routine
       spawn_tasks_all_stub();
-    
+
       // back to single-threaded
       vx_tmc_one();
-      
+
       // wait for spawn warps to terminate
-      vx_wspawn_wait(); 
+      vx_wspawn_wait();
     }
   }
 
   vx_printf("VXSpawn: I am done with the for loop\n");
   if (rT != 0) {
     // adjust offset
-    wspawn_args.remain_tasks_offset += (tasks_per_core_n1 - rT);
-    
-    // activate remaining threads  
+    wspawn_args.offset += (tasks_per_core_n1 - rT);
+
+    // activate remaining threads
     int tmask = (1 << rT) - 1;
     vx_tmc(tmask);
 
@@ -213,151 +230,183 @@ void vx_spawn_tasks(uint32_t num_tasks, vx_spawn_tasks_cb callback , void * arg)
     // back to single-threaded
     vx_tmc_one();
   }
-
 }
 
-static void __attribute__ ((noinline)) spawn_priority_tasks_all_stub() {
-  int NT  = 1; //vx_num_threads();
-  int NW = vx_num_warps();
+void vx_spawn_priority_tasks(int num_tasks, int priority_tasks_offset,
+                              vx_spawn_tasks_cb callback, void *arg) {
+
+  vx_printf("VXPSpawn: Priority thread scheduler on scalar core has begun");
+
+  int priority_threads[16] = {0, 3, 6, 8, 9, 10, 12, 1, 2, 4, 5, 7, 11, 13, 15, 14};
+
+  asm volatile(".insn r %0, 1, 0, x0, %1, %2" ::"i"(RISCV_CUSTOM0), "r"("x0"), "r"("x0")); // this should result in a wspawn call to 1 warp, and pc 0.
+  vx_wspawn_wait();                                                                        // we really have to pray that this does not touch the stack!
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+static void __attribute__((noinline)) spawn_kernel_all_stub() {
+  int num_threads_spawn_tasks = vx_num_threads();
   int cid = vx_core_id();
   int wid = vx_warp_id();
   int tid = vx_thread_id();
-  
-  wspawn_threads_args_t* p_wspawn_args = (wspawn_threads_args_t*)g_wspawn_args[cid]; 
 
-  vx_kernel_func_cb callback = p_wspawn_args->callback;
-  void* arg = p_wspawn_args->arg; 
+  wspawn_kernel_args_t *p_wspawn_args = (wspawn_kernel_args_t *)g_wspawn_args[cid];
 
-  int warp_gid = (p_wspawn_args->warp_batches * NW) + wid; 
-  int thread_gid = warp_gid * NT + tid + p_wspawn_args->all_tasks_offset;
+  int wK = (p_wspawn_args->NWs * wid) + MIN(p_wspawn_args->RWs, wid);
+  int tK = p_wspawn_args->NWs + (wid < p_wspawn_args->RWs);
+  int offset = p_wspawn_args->offset + (wK * num_threads_spawn_tasks) + (tid * tK);
 
-  vx_printf("VXPSpawn: cid=%d, wid=%d, tid=%d, fWindex=%d, offset= %d, warp_gid=%d, thread_gid=%d\n",cid, wid, tid, p_wspawn_args->warp_batches,p_wspawn_args->all_tasks_offset,warp_gid,thread_gid);
-  callback(thread_gid);
+  int X = p_wspawn_args->ctx->num_groups[0];
+  int Y = p_wspawn_args->ctx->num_groups[1];
+  int XY = X * Y;
+
+  if (p_wspawn_args->isXYpow2) {
+    for (int wg_id = offset, N = wg_id + tK; wg_id < N; ++wg_id) {
+      int k = wg_id >> p_wspawn_args->log2XY;
+      int wg_2d = wg_id - k * XY;
+      int j = wg_2d >> p_wspawn_args->log2X;
+      int i = wg_2d - j * X;
+      (p_wspawn_args->callback)(p_wspawn_args->arg, p_wspawn_args->ctx, i, j, k);
+    }
+  }
+  else {
+    for (int wg_id = offset, N = wg_id + tK; wg_id < N; ++wg_id) {
+      int k = wg_id / XY;
+      int wg_2d = wg_id - k * XY;
+      int j = wg_2d / X;
+      int i = wg_2d - j * X;
+      (p_wspawn_args->callback)(p_wspawn_args->arg, p_wspawn_args->ctx, i, j, k);
+    }
+  }
 }
 
-static void __attribute__ ((noinline)) spawn_priority_tasks_all_cb() {  
-  // activate the 1 priority thread
-  // vx_tmc(-1);
+static void __attribute__((noinline)) spawn_kernel_rem_stub() {
+  int cid = vx_core_id();
+  int tid = vx_thread_id();
 
-  vx_tmc_one();
+  wspawn_kernel_args_t *p_wspawn_args = (wspawn_kernel_args_t *)g_wspawn_args[cid];
+
+  int wg_id = p_wspawn_args->offset + tid;
+
+  int X = p_wspawn_args->ctx->num_groups[0];
+  int Y = p_wspawn_args->ctx->num_groups[1];
+  int XY = X * Y;
+
+  if (p_wspawn_args->isXYpow2) {
+    int k = wg_id >> p_wspawn_args->log2XY;
+    int wg_2d = wg_id - k * XY;
+    int j = wg_2d >> p_wspawn_args->log2X;
+    int i = wg_2d - j * X;
+    (p_wspawn_args->callback)(p_wspawn_args->arg, p_wspawn_args->ctx, i, j, k);
+  }
+  else {
+    int k = wg_id / XY;
+    int wg_2d = wg_id - k * XY;
+    int j = wg_2d / X;
+    int i = wg_2d - j * X;
+    (p_wspawn_args->callback)(p_wspawn_args->arg, p_wspawn_args->ctx, i, j, k);
+  }
+}
+
+static void __attribute__((noinline)) spawn_kernel_all_cb() {
+  // activate all threads
+  vx_tmc(-1);
 
   // call stub routine
-  spawn_priority_tasks_all_stub();
+  spawn_kernel_all_stub();
 
   // disable warp
   vx_tmc_zero();
 }
 
-//---------------------------------------------------------------------------------------------
+void vx_spawn_kernel(context_t *ctx, vx_spawn_kernel_cb callback, void *arg) {
+  // total number of WGs
+  int X = ctx->num_groups[0];
+  int Y = ctx->num_groups[1];
+  int Z = ctx->num_groups[2];
+  int XY = X * Y;
+  int num_tasks = XY * Z;
 
-// Second Function
-//---------------------------------------------------------------------------------------------
-
-void vx_spawn_priority_tasks(uint32_t num_tasks, int priority_tasks_offset, vx_spawn_tasks_cb callback , void * arg) {
-	// device specs
-  int NC_total = vx_num_cores();
-  int NC = NC_total/2;
-  int NW = vx_num_warps(); 
-  int NT = 1; //vx_num_threads(); //priority warps are made of only 1 thread, will be run on scalar core 
+  // device specs
+  int num_cores_spawn_tasks = vx_num_cores();
+  int num_warps_spawn_tasks = vx_num_warps();
+  int num_threads_spawn_tasks = vx_num_threads();
 
   // current core id
   int core_id = vx_core_id();
-  int core_second = (NC_total/2);
-  // vx_printf("VXPspawn where are we skipping? ,  core_boundary=%d\n",core_second);
-  
-  if (core_id >= NUM_CORES_MAX) 
+  if (core_id >= NUM_CORES_MAX)
     return;
 
-  // assign priority tasks only to second half cores
-  if(core_id >= (NC_total/2))
-  {
-    vx_printf("VXPspawn starting spawn,  core_id=%d\n",core_id);
-    // calculate necessary active cores
-    int WT = NW * NT;
-    int nC1 = (num_tasks > WT) ? (num_tasks / WT) : 1;
-    int nc = MIN(nC1, NC_total/2);
-    int nCoreIDMax = (nc+ (NC_total/2)-1);
-    if (core_id > nCoreIDMax )
-    {
-      vx_printf("VXPspawn returning coz core_id=%d >= nc=%d nCoreIDMax=%d\n (nC1=%d, NC_total/2=%d)",core_id,nc,nCoreIDMax, nC1, NC_total/2);
-      return; // terminate extra cores
-    }
-      
+  // calculate necessary active cores
+  int WT = num_warps_spawn_tasks * num_threads_spawn_tasks;
+  int nC = (num_tasks > WT) ? (num_tasks / WT) : 1;
+  int nc = MIN(nC, num_cores_spawn_tasks);
+  if (core_id >= nc)
+    return; // terminate extra cores
 
-    // number of tasks per core
-    int tasks_per_core = (num_tasks / nc);
-    int tasks_per_core_n1 = tasks_per_core;  
-    if (core_id == (nc-1)) {    
-      int rem = num_tasks - (nc * tasks_per_core); 
-      tasks_per_core_n1 += rem; // last core also executes remaining tasks
-    }
-
-    // number of tasks per warp
-    // int TW = tasks_per_core_n1 / NT ;      // occupied warps
-    // int rT = tasks_per_core_n1 - TW; // remaining threads
-    int TW = tasks_per_core_n1;
-    int rT = 0;
-    int fW = 1, rW = 0;
-    if (TW >= NW) {
-      fW = TW / NW;			                  // full warps iterations
-      rW = TW - fW * NW;                  // remaining warps
-    }
-
-    wspawn_threads_args_t wspawn_args = { callback, arg, priority_tasks_offset + ((core_id - core_second) * tasks_per_core), fW, rW,0 };
-    g_wspawn_args[core_id] = &wspawn_args;
-    int nw = MIN(TW, NW);
-    vx_printf("VXPSpawn: core_id=%d num_tasks=%d NC=%d NW=%d NT=%d WT=%d nC1=%d nc=%d tasks_per_core_n1=%d TW=%d rT=%d fW=%d rW=%d offset=%d nw=%d\n", core_id, num_tasks,NC, NW, NT,WT, nC1, nc, tasks_per_core_n1, TW, rT, fW, rW, core_id*tasks_per_core, nw);
-    if (TW >= 1)	{
-      for(int i=0; i<fW; i++)
-      {
-      // execute callback on other warps
-      wspawn_args.warp_batches = i;
-      vx_wspawn(nw, spawn_priority_tasks_all_cb);
-
-      // activate all threads
-      // vx_tmc(-1);
-
-      vx_tmc_one();
-
-      // call stub routine
-      spawn_priority_tasks_all_stub();
-
-      // back to single-threaded
-      vx_tmc_one();
-      
-      // wait for spawn warps to terminate
-      vx_wspawn_wait();
-      }
-      if(rW>0)
-      {
-        // execute callback on other warps
-        wspawn_args.warp_batches = fW;
-        vx_wspawn(rW, spawn_priority_tasks_all_cb);
-
-        // activate all threads
-        // vx_tmc(-1);
-
-        vx_tmc_one();
-
-        // call stub routine
-        spawn_priority_tasks_all_stub();
-
-        // back to single-threaded
-        vx_tmc_one();
-        
-        // wait for spawn warps to terminate
-        vx_wspawn_wait();
-      }
-    }  
+  // number of tasks per core
+  int tasks_per_core = num_tasks / nc;
+  int tasks_per_core_n1 = tasks_per_core;
+  if (core_id == (nc - 1)) {
+      int rem = num_tasks - (nc * tasks_per_core);
+      tasks_per_core_n1 += rem; // last core also executes remaining WGs
   }
-  else
-  {
-    vx_printf("VXPspawn skipping spawning core id too low,  core_id=%d\n",core_id);
+
+  // number of tasks per warp
+  int TW = tasks_per_core_n1 / num_threads_spawn_tasks;      // occupied warps
+  int rT = tasks_per_core_n1 - TW * num_threads_spawn_tasks; // remaining threads
+  int fW = 1, rW = 0;
+  if (TW >= num_warps_spawn_tasks) {
+    fW = TW / num_warps_spawn_tasks;      // full warps iterations
+    rW = TW - fW * num_warps_spawn_tasks; // remaining warps
+  }
+
+  // fast path handling
+  char isXYpow2 = is_log2(XY);
+  char log2XY = fast_log2(XY);
+  char log2X = fast_log2(X);
+
+  wspawn_kernel_args_t wspawn_args = {
+      ctx, callback, arg, core_id * tasks_per_core, fW, rW, isXYpow2, log2XY, log2X};
+  g_wspawn_args[core_id] = &wspawn_args;
+
+  if (TW >= 1) {
+    // execute callback on other warps
+    int nw = MIN(TW, num_warps_spawn_tasks);
+    vx_wspawn(nw, spawn_kernel_all_cb);
+
+    // activate all threads
+    vx_tmc(-1);
+
+    // call stub routine
+    asm volatile("" ::: "memory");
+    spawn_kernel_all_stub();
+
+    // back to single-threaded
+    vx_tmc_one();
+
+    // wait for spawn warps to terminate
+    vx_wspawn_wait();
+  }
+
+  if (rT != 0) {
+    // adjust offset
+    wspawn_args.offset += (tasks_per_core_n1 - rT);
+
+    // activate remaining threads
+    int tmask = (1 << rT) - 1;
+    vx_tmc(tmask);
+
+    // call stub routine
+    spawn_kernel_rem_stub();
+
+    // back to single-threaded
+    vx_tmc_one();
   }
 }
 
-///////////////////////////////////////////////////////////////////////////////
-// spawn_kernel_all_stub
+
 static void __attribute__ ((noinline)) process_threads() {
   wspawn_threads_args_t* targs = (wspawn_threads_args_t*)csr_read(VX_CSR_MSCRATCH);
 
@@ -393,7 +442,7 @@ static void __attribute__ ((noinline)) process_remaining_threads() {
   uint32_t thread_id = vx_thread_id();
   uint32_t task_id = targs->remain_tasks_offset + thread_id;
 
-  (targs->callback)(thread_id, (void*)targs->arg);
+  (targs->callback)((void*)targs->arg);
 }
 
 static void __attribute__ ((noinline)) process_threads_stub() {
@@ -444,11 +493,13 @@ static void __attribute__ ((noinline)) process_thread_groups() {
 }
 
 static void __attribute__ ((noinline)) process_thread_groups_stub() {
+  // Reads the value of the machine-mode scratch register (VX_CSR_MSCRATCH
   wspawn_groups_args_t* targs = (wspawn_groups_args_t*)csr_read(VX_CSR_MSCRATCH);
   uint32_t warps_per_group = targs->warps_per_group;
   uint32_t remaining_mask = targs->remaining_mask;
   uint32_t warp_id = vx_warp_id();
   uint32_t group_warp_id = warp_id % warps_per_group;
+
   uint32_t threads_mask = (group_warp_id == warps_per_group-1) ? remaining_mask : -1;
 
   // activate threads
@@ -470,19 +521,21 @@ int vx_spawn_threads(uint32_t dimension,
   uint32_t num_groups = 1;
   uint32_t group_size = 1;
   for (uint32_t i = 0; i < 3; ++i) {
-    uint32_t gd = (grid_dim && (i < dimension)) ? grid_dim[i] : 1;
-    uint32_t bd = (block_dim && (i < dimension)) ? block_dim[i] : 1;
-    num_groups *= gd;
-    group_size *= bd;
-    gridDim.m[i] = gd;
-    blockDim.m[i] = bd;
+    uint32_t ith_grid_dim   = (grid_dim  && (i < dimension)) ? grid_dim[i]  : 1;
+    uint32_t ith_block_dim  = (block_dim && (i < dimension)) ? block_dim[i] : 1;
+    
+    num_groups *= ith_grid_dim;
+    group_size *= ith_block_dim;
+    
+    gridDim.m[i]  = ith_grid_dim;
+    blockDim.m[i] = ith_block_dim;
   }
 
   // device specifications
-  uint32_t num_cores = vx_num_cores();
-  uint32_t warps_per_core = vx_num_warps();
+  uint32_t num_cores        = vx_num_cores();
+  uint32_t warps_per_core   = vx_num_warps();
   uint32_t threads_per_warp = vx_num_threads();
-  uint32_t core_id = vx_core_id();
+  uint32_t core_id          = vx_core_id();
 
   // check group size
   uint32_t threads_per_core = warps_per_core * threads_per_warp;
@@ -505,6 +558,7 @@ int vx_spawn_threads(uint32_t dimension,
     uint32_t needed_warps = num_groups * warps_per_group;
     uint32_t needed_cores = (needed_warps + warps_per_core-1) / warps_per_core;
     uint32_t active_cores = MIN(needed_cores, num_cores);
+    // Change active cores to point to SCALAR and SIMT here?
 
     // only active cores participate
     if (core_id >= active_cores)
@@ -542,7 +596,6 @@ int vx_spawn_threads(uint32_t dimension,
       remaining_mask
     };
     csr_write(VX_CSR_MSCRATCH, &wspawn_args);
-
     // set global variables
     __warps_per_group = warps_per_group;
 
@@ -623,7 +676,8 @@ int vx_spawn_threads(uint32_t dimension,
   }
 
   // wait for spawned warps to complete
-  vx_wspawn(1, 0);
+  vx_wspawn(1, 0); // -> spawn warps
+  // Passed in a null pointer -> create a nop?
 
   return 0;
 }
