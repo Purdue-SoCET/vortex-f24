@@ -29,7 +29,7 @@ int main() {
 
 	int priority_offset = (arg->num_cores / 2) * arg->num_threads_cores;
 	vx_spawn_tasks(arg->num_tasks, (vx_spawn_tasks_cb)kernel_body, arg);
-	//vx_spawn_priority_tasks(arg->num_tasks, priority_offset, (vx_spawn_tasks_cb)kernel_body, arg);
+	vx_spawn_priority_tasks(arg->num_tasks, priority_offset, (vx_spawn_tasks_cb)kernel_body, arg);
 	return 1;
 	//return vx_spawn_threads(1, &arg->num_tasks, nullptr, (vx_kernel_func_cb)kernel_body, arg);
 }
