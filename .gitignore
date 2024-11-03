@@ -3,3 +3,12 @@
 *.cache
 *.code-workspace
 /tools/*
+*.log*
+*.a
+*.out
+*.dump
+*.o
+*.so
+*.depend
+*.elf
+*.vxbin
