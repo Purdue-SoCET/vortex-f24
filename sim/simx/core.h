@@ -146,12 +146,12 @@ private:
   void execute();
   void commit();
 
-  void scalar_schedule();
-  void scalar_fetch();
-  void scalar_decode();
-  void scalar_issue();
-  void scalar_execute();
-  void scalar_commit();
+  bool scalar_schedule();
+  bool scalar_fetch();
+  bool scalar_decode();
+  bool scalar_issue();
+  bool scalar_execute();
+  bool scalar_commit();
 
   uint32_t core_id_;
   Socket* socket_;
@@ -192,6 +192,8 @@ private:
 
   bool branch_mispred_flush; // A flush when the branch is mispredicted
   bool squash_in_progress; // If an icache squash is in progress, ignore the next response from icache
+  uint64_t num_exec_inflight; // Number of instructions in flight in the execute stage
+  bool draining; // Execute stage is actively draining
 };
 
 } // namespace vortex

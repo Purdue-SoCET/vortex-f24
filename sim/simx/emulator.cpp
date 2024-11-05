@@ -136,6 +136,8 @@ void Emulator::attach_ram(RAM* ram) {
 
 instr_trace_t* Emulator::step() {
   int scheduled_warp = -1;
+  // DT(3, "Active: " << active_warps_);
+  // DT(3, "Stalled: " << stalled_warps_); 
 
   // process pending wspawn
   if (wspawn_.valid && active_warps_.count() == 1) {
@@ -230,6 +232,160 @@ uint32_t Emulator::get_core_id() {
   return core_->id(); 
 }
 
+instr_trace_t* Emulator::step_schedule() {
+  int scheduled_warp = -1;
+
+  // process pending wspawn
+  if (wspawn_.valid && active_warps_.count() == 1) {
+    DP(3, "*** Activate " << (wspawn_.num_warps-1) << " warps at PC: " << std::hex << wspawn_.nextPC << std::dec);
+    for (uint32_t i = 1; i < wspawn_.num_warps; ++i) {
+      auto& warp = warps_.at(i);
+      warp.PC = wspawn_.nextPC;
+      warp.tmask.set(0);
+      active_warps_.set(i);
+    }
+    wspawn_.valid = false;
+    stalled_warps_.reset(0);
+  }
+
+  // find next ready warp
+  for (size_t wid = 0, nw = arch_.num_warps(); wid < nw; ++wid) {
+    bool warp_active = active_warps_.test(wid);
+    bool warp_stalled = stalled_warps_.test(wid);
+    if (warp_active && !warp_stalled) {
+      scheduled_warp = wid;
+      break;
+    }
+  }
+  if (scheduled_warp == -1) {
+    return nullptr;
+  }
+
+  // suspend warp until decode
+  auto& warp = warps_.at(scheduled_warp);
+  assert(warp.tmask.any());
+
+  #ifndef NDEBUG
+    uint32_t instr_uuid = warp.uuid++;
+    uint32_t g_wid = core_->id() * arch_.num_warps() + scheduled_warp;
+    uint64_t uuid = (uint64_t(g_wid) << 32) | instr_uuid;
+  #else
+    uint64_t uuid = 0;
+  #endif
+
+  auto trace = new instr_trace_t(uuid, arch_);
+  trace->wid = scheduled_warp; 
+  trace->cid   = core_->id();
+  trace->tmask = warp.tmask;
+
+  return trace; 
+}
+
+void Emulator::step_fetch(instr_trace_t* trace) {
+  auto& warp = warps_.at(trace->wid);
+
+  DPH(1, "Fetch: cid=" << core_->id() << ", wid=" << trace->wid << ", tmask=");
+  for (uint32_t i = 0, n = arch_.num_threads(); i < n; ++i)
+    DPN(1, warp.tmask.test(i));
+  DPN(1, ", PC=0x" << std::hex << warp.PC << " (#" << std::dec << trace->uuid << ")" << std::endl);
+
+  uint32_t instr_code = 0;
+  this->icache_read(&instr_code, warp.PC, sizeof(uint32_t));
+  trace->instr_code = instr_code;
+  trace->PC    = warp.PC;
+
+  // If predicted not taken:
+  warp.PC += 4; 
+
+  // If predicted taken:
+  // Pull it from the struct that remembers previous taken addresses
+}
+
+void Emulator::step_decode(instr_trace_t* trace) {
+  auto instr = this->decode(trace->instr_code);
+  auto& warp = warps_.at(trace->wid);
+
+  if (!instr) {
+    std::cout << "Error: invalid instruction 0x" << std::hex << trace->instr_code << ", at PC=0x" << warp.PC << " (#" << std::dec << trace->uuid << ")" << std::endl;
+    std::abort();
+  }
+
+  DP(1, "Instr 0x" << std::hex << trace->instr_code << ": " << std::dec << *instr);
+  trace->instr = instr;
+
+  // Registers used are prepared for scoreboard
+  this->scoreboard_prep(*(trace->instr), trace->wid, trace); 
+}
+
+void Emulator::step_issue() {
+  // Nothing really happens here, handled by core
+}
+
+void Emulator::step_execute(instr_trace_t* trace) {
+  auto& warp = warps_.at(trace->wid);
+  this->execute(*(trace->instr), trace->wid, trace);
+
+
+  DP(5, "Register state:");
+  for (uint32_t i = 0; i < MAX_NUM_REGS; ++i) {
+    DPN(5, "  %r" << std::setfill('0') << std::setw(2) << i << ':' << std::hex);
+    // Integer register file
+    for (uint32_t j = 0; j < arch_.num_threads(); ++j) {
+      DPN(5, ' ' << std::setfill('0') << std::setw(XLEN/4) << warp.ireg_file.at(j).at(i) << std::setfill(' ') << ' ');
+    }
+    DPN(5, '|');
+    // Floating point register file
+    for (uint32_t j = 0; j < arch_.num_threads(); ++j) {
+      DPN(5, ' ' << std::setfill('0') << std::setw(16) << warp.freg_file.at(j).at(i) << std::setfill(' ') << ' ');
+    }
+    DPN(5, std::dec << std::endl);
+  }
+}
+
+void Emulator::step_commit(instr_trace_t* trace) {
+auto& warp = warps_.at(trace->wid);
+  if (trace->wb) {
+    auto type = trace->instr->getRDType();
+    switch (type) {
+    case RegType::Integer:
+      if (trace->dst_reg.idx) {
+        DPH(2, "Dest Reg: " << type << trace->dst_reg.idx << "={");
+        for (uint32_t t = 0; t < arch_.num_threads(); ++t) {
+          if (t) DPN(2, ", ");
+          if (!warp.tmask.test(t)) {
+            DPN(2, "-");
+            continue;
+          }
+          warp.ireg_file.at(t)[trace->dst_reg.idx] = trace->rddata[t].i;
+          DPN(2, "0x" << std::hex << trace->rddata[t].i << std::dec);
+        }
+        DPN(2, "}" << " #(" << trace->uuid << ")" << std::endl);
+        assert(trace->dst_reg.idx != 0);
+      } else {
+        // disable writes to x0
+      }
+      break;
+    case RegType::Float:
+      DPH(2, "Dest Reg: " << type << trace->dst_reg.idx << "={");
+      for (uint32_t t = 0; t < arch_.num_threads(); ++t) {
+        if (t) DPN(2, ", ");
+        if (!warp.tmask.test(t)) {
+          DPN(2, "-");
+          continue;
+        }
+        warp.freg_file.at(t)[trace->dst_reg.idx] = trace->rddata[t].u64;
+        DPN(2, "0x" << std::hex << trace->rddata[t].f << std::dec);
+      }
+      DPN(2, "}" << " #(" << trace->uuid << ")" << std::endl);
+      break;
+    default:
+      std::abort();
+      break;
+    }
+  }
+}
+
+// Ignore for now
 void Emulator::update_execute(uint32_t wid, Word next_pc, ThreadMask next_tmask) {
   auto& warp = warps_.at(wid);
   if (warp.PC != next_pc) {
@@ -249,10 +405,7 @@ void Emulator::update_execute(uint32_t wid, Word next_pc, ThreadMask next_tmask)
   } 
 }
 
-void Emulator::update_memory() {
-  
-}
-
+// Ignore for now
 void Emulator::update_commit(uint32_t wid, RegType type, uint32_t rdest, std::vector<instr_trace_t::reg_data_t> rddata, bool wb) {
   auto& warp = warps_.at(wid);
   if (wb) {

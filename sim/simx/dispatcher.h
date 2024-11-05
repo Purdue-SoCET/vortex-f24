@@ -124,6 +124,30 @@ public:
 		return true;
 	}
 
+	// Clear everything in the dispatcher
+	void clear() {
+		for (uint32_t i = 0; i < ISSUE_WIDTH; ++i) {
+			auto& queue = queues_.at(i);
+			while (!queue.empty()) {
+				queue.pop(); 
+			}
+			while (!Inputs_.at(i).empty()) {
+				Inputs_.at(i).pop(); 
+			}
+		}
+		for (uint32_t b = 0; b < block_size_; ++b) {
+			uint32_t i = batch_idx_ * block_size_ + b;
+			auto& output = Outputs.at(i);
+			while (!output.empty()) {
+				output.pop();
+			}
+		}
+		batch_idx_ = 0; //Reposition start_p_
+		for (uint32_t b = 0; b < block_size_; ++b) {
+			start_p_.at(b) = 0;
+		}
+	}
+
 private:
 	std::vector<SimPort<instr_trace_t*>> Inputs_;
 	Arch& arch_;

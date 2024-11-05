@@ -21,6 +21,8 @@
 #include "arch.h"
 #include "debug.h"
 
+#include "instr.h"
+
 namespace vortex {
 
 class ITraceData {
@@ -100,10 +102,17 @@ public:
   bool fetch_stall;
 
   //--
-  bool branch_mispred_flush; 
-  bool halt;
-  Word next_pc;  
-  ThreadMask  next_tmask;
+  // bool branch_mispred_flush; 
+  // bool halt;
+  // Word next_pc;  
+  // ThreadMask  next_tmask;
+  // std::vector<reg_data_t> rddata;
+
+  //--
+  uint32_t instr_code;
+  std::shared_ptr<Instr> instr;
+  bool branch_mispred_flush;
+  bool halt;  
   std::vector<reg_data_t> rddata;
 
 
@@ -125,11 +134,10 @@ public:
     , sop(true)
     , eop(true)
     , fetch_stall(false)
+    , instr_code(0)
     , branch_mispred_flush(false)
     , halt(false)
-    , next_pc(0)
-    , next_tmask(0)
-    , rddata(1, reg_data_t{0,0,0,0,0,0,0,0,0}) // Only used on scalar core so vector is 1 unit long
+    , rddata(1, {0,0,0,0,0,0,0,0,0})
     , log_once_(false)
   {}
 
@@ -150,10 +158,9 @@ public:
     , sop(rhs.sop)
     , eop(rhs.eop)
     , fetch_stall(rhs.fetch_stall)
+    , instr_code(rhs.instr_code)
     , branch_mispred_flush(rhs.branch_mispred_flush)
     , halt(rhs.halt)
-    , next_pc(rhs.next_pc)
-    , next_tmask(rhs.next_tmask)
     , rddata(rhs.rddata)
     , log_once_(false)
   {}

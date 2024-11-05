@@ -65,6 +65,14 @@ public:
 
   void update_commit(uint32_t wid, RegType type, uint32_t rdest, std::vector<instr_trace_t::reg_data_t> rddata, bool wb);
 
+  //-
+  instr_trace_t* step_schedule();
+  void step_fetch(instr_trace_t* trace);
+  void step_decode(instr_trace_t* trace);
+  void step_issue();
+  void step_execute(instr_trace_t* trace);
+  void step_commit(instr_trace_t* trace); 
+
 private:
 
   struct ipdom_entry_t {
@@ -98,6 +106,8 @@ private:
   std::shared_ptr<Instr> decode(uint32_t code) const;
 
   void execute(const Instr &instr, uint32_t wid, instr_trace_t *trace);
+
+  void scoreboard_prep(const Instr &instr, uint32_t wid, instr_trace_t *trace);
 
   void icache_read(void* data, uint64_t addr, uint32_t size);
 

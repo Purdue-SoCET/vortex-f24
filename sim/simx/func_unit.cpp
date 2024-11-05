@@ -50,6 +50,7 @@ void AluUnit::tick() {
 			std::abort();
 		}
 		DT(3, this->name() << ": op=" << trace->alu_type << ", " << *trace);
+
 		if (trace->eop && trace->fetch_stall) {
 			// core_->resume(trace->wid);
 		}
