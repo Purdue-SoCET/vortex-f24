@@ -26,7 +26,6 @@
 using namespace vortex;
 
 #define STORAGE_MULTIPLIER 100
-#define BRANCH_PRED 0 // 1 if you want to use the optimized scalar core
 
 Core::Core(const SimContext& ctx,
            uint32_t core_id,
@@ -156,11 +155,13 @@ Core::Core(const SimContext& ctx,
 
 Core::~Core() {
   std::cout << "Core ID: " << this->core_id_ << " has " << this->arch_.num_threads() << " thread(s) and " << this->arch_.num_warps() << " warp(s)." << std::endl;
-  double branch_pred_accuracy = (1.0 - (double)perf_stats_.wrong_pred / (double) perf_stats_.total_branches) * 100.0;
-  std::cout << "Wrong Pred: " << perf_stats_.wrong_pred << std::endl;
-  std::cout << "Correct Pred: " << (perf_stats_.total_branches - perf_stats_.wrong_pred) << std::endl;
-  std::cout << "Total Branches: " << perf_stats_.total_branches << std::endl;
-  std::cout << "Core ID: " << this->core_id_ << " has branch pred accuracy of " << branch_pred_accuracy << "%" << std::endl;
+  if (BRANCH_PRED) {
+    double branch_pred_accuracy = (1.0 - (double)perf_stats_.wrong_pred / (double) perf_stats_.total_branches) * 100.0;
+    std::cout << "Wrong Pred: " << perf_stats_.wrong_pred << std::endl;
+    std::cout << "Correct Pred: " << (perf_stats_.total_branches - perf_stats_.wrong_pred) << std::endl;
+    std::cout << "Total Branches: " << perf_stats_.total_branches << std::endl;
+    std::cout << "Core ID: " << this->core_id_ << " has branch pred accuracy of " << branch_pred_accuracy << "%" << std::endl;
+  }
 }
 
 void Core::reset() {

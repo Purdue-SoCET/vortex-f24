@@ -29,7 +29,7 @@
 
 using namespace vortex;
 
-#define BRANCH_PRED 0 // 1 if you want to be using the optimized scalar core
+// #define BRANCH_PRED 0 // 1 if you want to be using the optimized scalar core
 
 union reg_data_t {
   Word     u;
@@ -71,7 +71,7 @@ void Emulator::execute(const Instr &instr, uint32_t wid, instr_trace_t *trace) {
 
   trace->dst_reg = {instr.getRDType(), instr.getRDest()};
 
-  auto next_pc = trace->PC + 4;
+  auto next_pc = (arch_.num_threads() == 1 && BRANCH_PRED) ? trace->PC + 4 : warp.PC + 4;
   auto next_tmask = warp.tmask;
 
   auto opcode = instr.getOpcode();

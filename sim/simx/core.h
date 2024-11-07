@@ -30,6 +30,13 @@
 
 namespace vortex {
 
+#ifndef BRANCH_PRED_H
+#define BRANCH_PRED_H
+
+#define BRANCH_PRED 0 //1 if you want branch prediction, 0 for default 1 warp, 1 thread SIMT core
+
+#endif // BRANCH_PRED_H
+
 class Socket;
 class Arch;
 class DCRS;

@@ -77,9 +77,10 @@ Socket::Socket(const SimContext& ctx,
 
   // create cores
   // Create the SIMT cores
-  for (uint32_t i = 0; i < cores_per_socket/2; ++i) {
+  // for (uint32_t i = 0; i < cores_per_socket/2; ++i) {
+  for (uint32_t i = 0; i < cores_per_socket; ++i) {
     uint32_t core_id = socket_id * cores_per_socket + i;
-    cores_.at(i) = Core::Create(core_id, this, arch_sclr, dcrs); 
+    cores_.at(i) = Core::Create(core_id, this, arch, dcrs); 
 
     cores_.at(i)->icache_req_ports.at(0).bind(&icaches_->CoreReqPorts.at(i).at(0));
     icaches_->CoreRspPorts.at(i).at(0).bind(&cores_.at(i)->icache_rsp_ports.at(0));
@@ -91,18 +92,18 @@ Socket::Socket(const SimContext& ctx,
   }
 
   // Create the scalar cores (this doesn't run right now)
-  for (uint32_t i = cores_per_socket/2; i < cores_per_socket; ++i) {
-    uint32_t core_id = socket_id * cores_per_socket + i;
-    cores_.at(i) = Core::Create(core_id, this, arch_sclr, dcrs);
+  // for (uint32_t i = cores_per_socket/2; i < cores_per_socket; ++i) {
+  //   uint32_t core_id = socket_id * cores_per_socket + i;
+  //   cores_.at(i) = Core::Create(core_id, this, arch_sclr, dcrs);
 
-    cores_.at(i)->icache_req_ports.at(0).bind(&icaches_->CoreReqPorts.at(i).at(0));
-    icaches_->CoreRspPorts.at(i).at(0).bind(&cores_.at(i)->icache_rsp_ports.at(0));
+  //   cores_.at(i)->icache_req_ports.at(0).bind(&icaches_->CoreReqPorts.at(i).at(0));
+  //   icaches_->CoreRspPorts.at(i).at(0).bind(&cores_.at(i)->icache_rsp_ports.at(0));
 
-    for (uint32_t j = 0; j < DCACHE_NUM_REQS; ++j) {
-      cores_.at(i)->dcache_req_ports.at(j).bind(&dcaches_->CoreReqPorts.at(i).at(j));
-      dcaches_->CoreRspPorts.at(i).at(j).bind(&cores_.at(i)->dcache_rsp_ports.at(j));
-    }
-  }
+  //   for (uint32_t j = 0; j < DCACHE_NUM_REQS; ++j) {
+  //     cores_.at(i)->dcache_req_ports.at(j).bind(&dcaches_->CoreReqPorts.at(i).at(j));
+  //     dcaches_->CoreRspPorts.at(i).at(j).bind(&cores_.at(i)->dcache_rsp_ports.at(j));
+  //   }
+  // }
 
 }
 

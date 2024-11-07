@@ -307,7 +307,12 @@ void Emulator::step_decode(instr_trace_t* trace) {
 
   if (!instr) {
     std::cout << "Error: invalid instruction 0x" << std::hex << trace->instr_code << ", at PC=0x" << warp.PC << " (#" << std::dec << trace->uuid << ")" << std::endl;
-    std::abort();
+    // If we are branch predicting, don't abort invalid opcode bc we might schedule stuff past where instructions exist (but will get flushed)
+    if (BRANCH_PRED && arch_.num_threads() == 1) {
+      return; 
+    } else {
+      std::abort();
+    }
   }
 
   DP(1, "Instr 0x" << std::hex << trace->instr_code << ": " << std::dec << *instr);
