@@ -196,7 +196,7 @@ int main(int argc, char *argv[]) {
 
   try {
     char *input_f = argv[1];
-    printf("Reading File\n");
+    printf("Reading File: %s\n", input_f);
     // Read in Graph from a file
     fp = fopen(input_f, "r");
     if (!fp) {

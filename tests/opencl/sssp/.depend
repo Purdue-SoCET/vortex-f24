@@ -1,0 +1,12 @@
+oclDijkstra.o: \
+ /home/ecegridfs/a/socet177/SoCET/vortex-f24/tests/opencl/sssp/oclDijkstra.cpp \
+ /home/ecegridfs/a/socet177/SoCET/vortex-f24/tests/opencl/sssp/oclDijkstraKernel.h \
+ /home/ecegridfs/a/socet177/SoCET/vortex-f24/tools/pocl/include/CL/cl.h \
+ /home/ecegridfs/a/socet177/SoCET/vortex-f24/tools/pocl/include/CL/cl_version.h \
+ /home/ecegridfs/a/socet177/SoCET/vortex-f24/tools/pocl/include/CL/cl_platform.h
+oclDijkstraKernel.o: \
+ /home/ecegridfs/a/socet177/SoCET/vortex-f24/tests/opencl/sssp/oclDijkstraKernel.cpp \
+ /home/ecegridfs/a/socet177/SoCET/vortex-f24/tests/opencl/sssp/oclDijkstraKernel.h \
+ /home/ecegridfs/a/socet177/SoCET/vortex-f24/tools/pocl/include/CL/cl.h \
+ /home/ecegridfs/a/socet177/SoCET/vortex-f24/tools/pocl/include/CL/cl_version.h \
+ /home/ecegridfs/a/socet177/SoCET/vortex-f24/tools/pocl/include/CL/cl_platform.h

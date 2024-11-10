@@ -1,0 +1,7 @@
+main.o: \
+ /home/ecegridfs/a/socet177/SoCET/vortex-f24/tests/opencl/bfs/main.cc \
+ /home/ecegridfs/a/socet177/SoCET/vortex-f24/tests/opencl/bfs/CLHelper.h \
+ /home/ecegridfs/a/socet177/SoCET/vortex-f24/tools/pocl/include/CL/cl.h \
+ /home/ecegridfs/a/socet177/SoCET/vortex-f24/tools/pocl/include/CL/cl_version.h \
+ /home/ecegridfs/a/socet177/SoCET/vortex-f24/tools/pocl/include/CL/cl_platform.h \
+ /home/ecegridfs/a/socet177/SoCET/vortex-f24/tests/opencl/bfs/util.h
