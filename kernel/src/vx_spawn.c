@@ -63,6 +63,8 @@ static void __attribute__ ((noinline)) process_threads() {
   uint32_t warp_id = vx_warp_id();
   uint32_t thread_id = vx_thread_id();
 
+  vx_printf("Process threads thread_id:%d\n", thread_id);
+
   uint32_t start_warp = (warp_id * targs->warp_batches) + MIN(warp_id, targs->remaining_warps);
   uint32_t iterations = targs->warp_batches + (warp_id < targs->remaining_warps);
 
@@ -93,6 +95,8 @@ static void __attribute__ ((noinline)) process_priority_threads() {
   uint32_t warp_id = vx_warp_id();
   uint32_t thread_id = vx_thread_id();
 
+  vx_printf("Process priority threads thread_id:%d\n", thread_id);
+
   uint32_t start_warp = (warp_id * targs->warp_batches) + MIN(warp_id, targs->remaining_warps);
   uint32_t iterations = targs->warp_batches + (warp_id < targs->remaining_warps);
 
@@ -120,6 +124,7 @@ static void __attribute__ ((noinline)) process_remaining_threads() {
   wspawn_threads_args_t* targs = (wspawn_threads_args_t*)csr_read(VX_CSR_MSCRATCH);
 
   uint32_t thread_id = vx_thread_id();
+  vx_printf("Remaining threads thread_id:%d\n", thread_id);
   uint32_t task_id = targs->remain_tasks_offset + thread_id;
 
   (targs->callback)((void*)targs->arg);
@@ -223,8 +228,8 @@ int vx_spawn_threads(uint32_t dimension,
 
   // device specifications
   uint32_t num_cores = vx_num_cores();
-  uint32_t warps_per_core = vx_num_warps();
-  uint32_t threads_per_warp = vx_num_threads();
+  uint32_t warps_per_core = 4;
+  uint32_t threads_per_warp = 4;
   uint32_t core_id = vx_core_id();
 
   // assign non-priority threads only to the first half cores --- from SCLR
@@ -404,9 +409,9 @@ int vx_spawn_priority_threads(uint32_t dimension,
   }
 
   // device specifications
-  uint32_t num_cores = vx_num_cores();
-  uint32_t warps_per_core = vx_num_warps();
-  uint32_t threads_per_warp = 4; //vx_num_threads();
+  uint32_t num_cores = vx_num_cores() / 2;
+  uint32_t warps_per_core = 4;
+  uint32_t threads_per_warp = 1; //vx_num_threads();
   uint32_t core_id = vx_core_id();
 
   // ------------------------------------ From SCLR
