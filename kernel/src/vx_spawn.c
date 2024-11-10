@@ -387,7 +387,8 @@ int vx_spawn_priority_threads(uint32_t dimension,
                      const uint32_t * block_dim,
                      int priority_offset,
                      vx_kernel_func_cb kernel_func,
-                     const void* arg) {
+                     const void* arg) 
+{
 
   vx_printf("Starting PRIORITY SPAWN THREADS");
   // calculate number of groups and group size
@@ -414,42 +415,51 @@ int vx_spawn_priority_threads(uint32_t dimension,
     return; 
   }
   
+
+
+  vx_printf("\nPriority num cores = %d", num_cores);
+  vx_printf("\nPriority warps per core %d", warps_per_core);
+  vx_printf("\nThreads per warp (priority) = %d", threads_per_warp);
+  vx_printf("\nPriority core id = %d", core_id);
   // assign priority tasks only to second half cores
   if(core_id >= (num_cores/2))
   {
     vx_printf("VXPspawn starting spawn,  core_id=%d\n",core_id);
-    // calculate necessary active cores
-    // int WT = warps_per_core * threads_per_warp;
-    // int nC1 = (num_tasks > WT) ? (num_tasks / WT) : 1;
-    // int nc = MIN(nC1, NC_total/2);
-    // int nCoreIDMax = (nc+ (NC_total/2)-1);
-    // if (core_id > nCoreIDMax )
-    // {
-    //   vx_printf("VXPspawn returning coz core_id=%d >= nc=%d nCoreIDMax=%d\n (nC1=%d, NC_total/2=%d)",core_id,nc,nCoreIDMax, nC1, NC_total/2);
-    //   return; // terminate extra cores
-    // }
+    //calculate necessary active cores
+    int WT = warps_per_core * threads_per_warp;//warps_per_core * threads_per_warp;
+    int nC1 = (threads_per_warp > WT) ? (threads_per_warp / WT) : 1;
+    int nc = MIN(nC1, num_cores/2);
+    int nCoreIDMax = (nc+ (num_cores/2)-1);
+    if (core_id > nCoreIDMax )
+    {
+      //vx_printf("VXPspawn returning coz core_id=%d >= nc=%d nCoreIDMax=%d\n (nC1=%d, NC_total/2=%d)",core_id,nc,nCoreIDMax, nC1, NC_total/2);
+      return; // terminate extra cores
+    }
 
   // ------------------------------------ End From SCLR
 
   //-----------------------------------------------------------------------------------------
   // New in F-24
   // check group size
-  uint32_t threads_per_core = warps_per_core * threads_per_warp;
-  if (threads_per_core < group_size) {
-    vx_printf("error: group_size > threads_per_core (%d,%d)\n", group_size, threads_per_core);
-    return -1;
-  }
-
-  if (group_size > 1) {
-    // calculate number of warps per group
-    uint32_t warps_per_group = group_size / threads_per_warp;
-    uint32_t remaining_threads = group_size - warps_per_group * threads_per_warp;
-    uint32_t remaining_mask = -1;
-    if (remaining_threads != 0) {
-      remaining_mask = (1 << remaining_threads) - 1;
-      ++warps_per_group;
+    uint32_t threads_per_core = warps_per_core * threads_per_warp;
+    if (threads_per_core < group_size) 
+    {
+      vx_printf("error: group_size > threads_per_core (%d,%d)\n", group_size, threads_per_core);
+      return -1;
     }
-  //-----------------------------------------------------------------------------------------
+
+    if (group_size > 1) 
+    {
+    // calculate number of warps per group
+      uint32_t warps_per_group = group_size / threads_per_warp;
+      uint32_t remaining_threads = group_size - warps_per_group * threads_per_warp;
+      uint32_t remaining_mask = -1;
+      if (remaining_threads != 0) 
+      {
+        remaining_mask = (1 << remaining_threads) - 1;
+        ++warps_per_group;
+      }
+    //-----------------------------------------------------------------------------------------
 
     // calculate necessary active cores
     uint32_t needed_warps = num_groups * warps_per_group;
@@ -457,21 +467,25 @@ int vx_spawn_priority_threads(uint32_t dimension,
     uint32_t active_cores = MIN(needed_cores, num_cores);
 
     // only active cores participate
-    if (core_id >= (active_cores + num_cores / 2))
+    if (core_id >= (active_cores + num_cores / 2)) 
+    {
       return 0;
+    }
 
     // total number of groups per core
     uint32_t total_groups_per_core = num_groups / active_cores;
     uint32_t remaining_groups_per_core = num_groups - active_cores;
-    if (core_id < remaining_groups_per_core)
+    if (core_id < remaining_groups_per_core) {
       ++total_groups_per_core;
+    }
 
     // calculate number of warps to activate
     uint32_t groups_per_core = warps_per_core / warps_per_group;
     uint32_t total_warps_per_core = total_groups_per_core * warps_per_group;
     uint32_t active_warps = total_warps_per_core;
     uint32_t warp_batches = 1, remaining_warps = 0;
-    if (active_warps > warps_per_core) {
+    if (active_warps > warps_per_core) 
+    {
       active_warps = groups_per_core * warps_per_group;
       warp_batches = total_warps_per_core / active_warps;
       remaining_warps = total_warps_per_core - warp_batches * active_warps;
@@ -481,7 +495,8 @@ int vx_spawn_priority_threads(uint32_t dimension,
     uint32_t group_offset = (core_id - num_cores / 2) * total_groups_per_core + MIN(core_id, remaining_groups_per_core);
 
     // set scheduler arguments
-    wspawn_groups_args_t wspawn_args = {
+    wspawn_groups_args_t wspawn_args = 
+    {
       kernel_func,
       arg,
       group_offset + priority_offset,
@@ -501,81 +516,89 @@ int vx_spawn_priority_threads(uint32_t dimension,
 
     // execute callback on warp0
     process_thread_groups_stub();
-  } else {
-    uint32_t num_tasks = num_groups;
-    __warps_per_group = 0;
+    } else 
+    {
+      uint32_t num_tasks = num_groups;
+      __warps_per_group = 0;
 
     // calculate necessary active cores
-    uint32_t needed_cores = (num_tasks + threads_per_core - 1) / threads_per_core;
-    uint32_t active_cores = MIN(needed_cores, num_cores);
+      uint32_t needed_cores = (num_tasks + threads_per_core - 1) / threads_per_core;
+      uint32_t active_cores = MIN(needed_cores, num_cores);
 
     // only active cores participate
-    if (core_id >= active_cores)
-      return 0;
+      if (core_id >= active_cores)
+      {
+        return 0;
+      }
 
     // number of tasks per core
-    uint32_t tasks_per_core = num_tasks / active_cores;
-    uint32_t remaining_tasks_per_core = num_tasks - tasks_per_core * active_cores;
-    if (core_id < remaining_tasks_per_core)
-      ++tasks_per_core;
+      uint32_t tasks_per_core = num_tasks / active_cores;
+      uint32_t remaining_tasks_per_core = num_tasks - tasks_per_core * active_cores;
+      if (core_id < remaining_tasks_per_core)
+      {
+        ++tasks_per_core;
+      }
 
     // calculate number of warps to activate
-    uint32_t total_warps_per_core = tasks_per_core / threads_per_warp;
-    uint32_t remaining_tasks = tasks_per_core - total_warps_per_core * threads_per_warp;
-    uint32_t active_warps = total_warps_per_core;
-    uint32_t warp_batches = 1, remaining_warps = 0;
-    if (active_warps > warps_per_core) {
-      active_warps = warps_per_core;
-      warp_batches = total_warps_per_core / active_warps;
-      remaining_warps = total_warps_per_core - warp_batches * active_warps;
-    }
+      uint32_t total_warps_per_core = tasks_per_core / threads_per_warp;
+      uint32_t remaining_tasks = tasks_per_core - total_warps_per_core * threads_per_warp;
+      uint32_t active_warps = total_warps_per_core;
+      uint32_t warp_batches = 1, remaining_warps = 0;
+      if (active_warps > warps_per_core) 
+      {
+        active_warps = warps_per_core;
+        warp_batches = total_warps_per_core / active_warps;
+        remaining_warps = total_warps_per_core - warp_batches * active_warps;
+      }
 
     // calculate offsets for task distribution
-    uint32_t all_tasks_offset = core_id * tasks_per_core + MIN(core_id, remaining_tasks_per_core);
-    uint32_t remain_tasks_offset = all_tasks_offset + (tasks_per_core - remaining_tasks);
+      uint32_t all_tasks_offset = core_id * tasks_per_core + MIN(core_id, remaining_tasks_per_core);
+      uint32_t remain_tasks_offset = all_tasks_offset + (tasks_per_core - remaining_tasks);
 
     // prepare scheduler arguments
-    wspawn_threads_args_t wspawn_args = {
-      kernel_func,
-      arg,
-      all_tasks_offset,
-      remain_tasks_offset,
-      warp_batches,
-      remaining_warps
-    };
-    csr_write(VX_CSR_MSCRATCH, &wspawn_args);
+      wspawn_threads_args_t wspawn_args = 
+      {
+        kernel_func,
+        arg,
+        all_tasks_offset,
+        remain_tasks_offset,
+        warp_batches,
+        remaining_warps
+      };
+      csr_write(VX_CSR_MSCRATCH, &wspawn_args);
 
-    if (active_warps >= 1) {
-      // execute callback on other warps
-      vx_wspawn(active_warps, process_priority_threads_stub);
+      if (active_warps >= 1) 
+      {
+        // execute callback on other warps
+        vx_wspawn(active_warps, process_priority_threads_stub);
 
-      // activate all threads
-      vx_tmc(-1);
+        // activate all threads
+        vx_tmc(-1);
 
-      // process threads
-      process_priority_threads();
+        // process threads
+        process_priority_threads();
 
-      // back to single-threaded
-      vx_tmc_one();
-    }
+        // back to single-threaded
+        vx_tmc_one();
+      }
 
-    if (remaining_tasks != 0) {
-      // activate remaining threads
-      uint32_t tmask = (1 << remaining_tasks) - 1;
-      vx_tmc(tmask);
+      if (remaining_tasks != 0) 
+      {
+        // activate remaining threads
+        uint32_t tmask = (1 << remaining_tasks) - 1;
+        vx_tmc(tmask);
 
-      // process remaining threads
-      process_remaining_threads();
+        // process remaining threads
+        process_remaining_threads();
 
-      // back to single-threaded
-      vx_tmc_one();
-    }
-  }
+        // back to single-threaded
+        vx_tmc_one();
+      }
+    } 
 
-  // wait for spawned warps to complete
-  vx_wspawn(1, 0);
-
-  return 0;
+    // wait for spawned warps to complete
+    vx_wspawn(1, 0);
+    return 0;
   } 
 }
 #ifdef __cplusplus
