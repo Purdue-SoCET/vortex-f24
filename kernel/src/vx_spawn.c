@@ -409,7 +409,7 @@ int vx_spawn_threads(uint32_t dimension,
 }
 
 
-void vx_spawn_priority_tasks(int num_tasks, int priority_tasks_offset, vx_spawn_tasks_cb callback, void *arg) {
+void vx_spawn_priority_threads(int num_tasks, int priority_tasks_offset, vx_spawn_tasks_cb callback, void *arg) {
   vx_printf("VXPSpawn: Priority thread scheduler on scalar core has begun");
 
   int priority_threads[16] = {0, 3, 6, 8, 9, 10, 12, 1, 2, 4, 5, 7, 11, 13, 15, 14};

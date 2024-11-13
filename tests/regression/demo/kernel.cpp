@@ -25,6 +25,6 @@ int main() {
     vx_printf("Calling VXSpawn1\n");
     vx_spawn_threads(1, &arg->num_tasks_nonpriority, nullptr, (vx_kernel_func_cb)kernel_body, arg);
     // vx_printf("Calling VXPSpawn2\n");
-    // vx_spawn_priority_tasks(arg->num_tasks_priority,arg->num_tasks_nonpriority, (vx_spawn_tasks_cb)kernel_body, arg);
+    // vx_spawn_priority_threads(arg->num_tasks_priority,arg->num_tasks_nonpriority, (vx_spawn_tasks_cb)kernel_body, arg);
 	return 0;
 }

@@ -76,7 +76,7 @@ int vx_spawn_threads(uint32_t dimension,
 // function call serialization
 void vx_serial(vx_serial_cb callback, const void * arg);
 
-void vx_spawn_priority_tasks(int num_tasks, int priority_tasks_offset,
+void vx_spawn_priority_threads(int num_tasks, int priority_tasks_offset,
                               vx_spawn_tasks_cb callback, void *arg);
 
 void vx_spawn_tasks(int num_tasks, vx_spawn_tasks_cb callback, void *arg);
