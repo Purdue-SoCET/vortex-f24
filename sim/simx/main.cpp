@@ -26,6 +26,8 @@
 #include "core.h"
 #include "VX_types.h"
 
+#include "arch_sclr.h"
+
 using namespace vortex;
 
 static void show_usage() {
@@ -83,11 +85,13 @@ int main(int argc, char **argv) {
     // create processor configuation
     Arch arch(num_threads, num_warps, num_cores);
 
+    Arch_SCLR arch_sclr(num_cores); //Scalar core always has 1 thread, 1 warp
+
     // create memory module
     RAM ram(0, MEM_PAGE_SIZE);
 
     // create processor
-    Processor processor(arch);
+    Processor processor(arch, arch_sclr);
 
     // attach memory module
     processor.attach_ram(&ram);

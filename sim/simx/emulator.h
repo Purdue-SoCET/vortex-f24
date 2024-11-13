@@ -10,7 +10,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-
+#pragma once 
 #ifndef __WARP_H
 #define __WARP_H
 
@@ -19,6 +19,8 @@
 #include <stack>
 #include <mem.h>
 #include "types.h"
+
+#include "instr_trace.h"
 
 namespace vortex {
 
@@ -30,7 +32,7 @@ class instr_trace_t;
 
 class Emulator {
 public:
-  Emulator(const Arch &arch,
+  Emulator(Arch &arch,
            const DCRS &dcrs,
            Core* core);
 
@@ -57,6 +59,20 @@ public:
 
   int get_exitcode() const;
 
+  uint32_t get_core_id();
+
+  void update_execute(uint32_t wid, Word next_pc, ThreadMask next_tmask);
+
+  void update_commit(uint32_t wid, RegType type, uint32_t rdest, std::vector<instr_trace_t::reg_data_t> rddata, bool wb);
+
+  //-
+  instr_trace_t* step_schedule();
+  void step_fetch(instr_trace_t* trace);
+  void step_decode(instr_trace_t* trace);
+  void step_issue();
+  void step_execute(instr_trace_t* trace);
+  void step_commit(instr_trace_t* trace); 
+
 private:
 
   struct ipdom_entry_t {
@@ -69,7 +85,7 @@ private:
   };
 
   struct warp_t {
-    warp_t(const Arch& arch);
+    warp_t(Arch& arch);
     void clear(uint64_t startup_addr);
 
     Word                              PC;
@@ -90,6 +106,8 @@ private:
   std::shared_ptr<Instr> decode(uint32_t code) const;
 
   void execute(const Instr &instr, uint32_t wid, instr_trace_t *trace);
+
+  void scoreboard_prep(const Instr &instr, uint32_t wid, instr_trace_t *trace);
 
   void icache_read(void* data, uint64_t addr, uint32_t size);
 
@@ -113,7 +131,7 @@ private:
 
   void update_fcrs(uint32_t fflags, uint32_t tid, uint32_t wid);
 
-  const Arch& arch_;
+  Arch& arch_;
   const DCRS& dcrs_;
   Core*       core_;
   std::vector<warp_t> warps_;

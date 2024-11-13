@@ -30,6 +30,13 @@
 
 namespace vortex {
 
+#ifndef BRANCH_PRED_H
+#define BRANCH_PRED_H
+
+#define BRANCH_PRED 0 //1 if you want branch prediction, 0 for default 1 warp, 1 thread SIMT core
+
+#endif // BRANCH_PRED_H
+
 class Socket;
 class Arch;
 class DCRS;
@@ -57,6 +64,8 @@ public:
     uint64_t stores;
     uint64_t ifetch_latency;
     uint64_t load_latency;
+    uint64_t total_branches;
+    uint64_t wrong_pred; 
 
     PerfStats()
       : cycles(0)
@@ -77,6 +86,8 @@ public:
       , stores(0)
       , ifetch_latency(0)
       , load_latency(0)
+      , total_branches(0)
+      , wrong_pred(0)
     {}
   };
 
@@ -89,7 +100,7 @@ public:
   Core(const SimContext& ctx,
        uint32_t core_id,
        Socket* socket,
-       const Arch &arch,
+       Arch &arch,
        const DCRS &dcrs);
 
   ~Core();
@@ -115,7 +126,7 @@ public:
     return core_id_;
   }
 
-  const Arch& arch() const {
+  Arch& arch() {
     return arch_;
   }
 
@@ -142,9 +153,16 @@ private:
   void execute();
   void commit();
 
+  bool scalar_schedule();
+  bool scalar_fetch();
+  bool scalar_decode();
+  bool scalar_issue();
+  bool scalar_execute();
+  bool scalar_commit();
+
   uint32_t core_id_;
   Socket* socket_;
-  const Arch& arch_;
+  Arch& arch_;
 
   Emulator emulator_;
 
@@ -178,6 +196,11 @@ private:
   friend class AluUnit;
   friend class FpuUnit;
   friend class SfuUnit;
+
+  bool branch_mispred_flush; // A flush when the branch is mispredicted
+  bool squash_in_progress; // If an icache squash is in progress, ignore the next response from icache
+  uint64_t num_exec_inflight; // Number of instructions in flight in the execute stage
+  bool draining; // Execute stage is actively draining
 };
 
 } // namespace vortex

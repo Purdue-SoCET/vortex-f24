@@ -30,13 +30,13 @@
 
 #define DP(lvl, x) do { \
   if ((lvl) <= DEBUG_LEVEL) { \
-    std::cout DEBUG_HEADER << x << std::endl; \
+    std::cout DEBUG_HEADER << " " << x << std::endl; \
   } \
 } while(0)
 
 #define DPH(lvl, x) do { \
   if ((lvl) <= DEBUG_LEVEL) { \
-    std::cout DEBUG_HEADER << x; \
+    std::cout DEBUG_HEADER << " " << x; \
   } \
 } while(0)
 

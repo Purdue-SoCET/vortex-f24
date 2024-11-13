@@ -88,6 +88,9 @@ $(PROJECT): $(SRCS)
 run-simx: $(PROJECT) kernel.vxbin
 	LD_LIBRARY_PATH=$(ROOT_DIR)/runtime:$(LD_LIBRARY_PATH) VORTEX_DRIVER=simx ./$(PROJECT) $(OPTS)
 
+run-gdb-simx: $(PROJECT) kernel.vxbin
+	LD_LIBRARY_PATH=$(ROOT_DIR)/runtime:$(LD_LIBRARY_PATH) VORTEX_DRIVER=simx gdb -q --args ./$(PROJECT) $(OPTS)
+
 run-rtlsim: $(PROJECT) kernel.vxbin
 	LD_LIBRARY_PATH=$(ROOT_DIR)/runtime:$(LD_LIBRARY_PATH) VORTEX_DRIVER=rtlsim ./$(PROJECT) $(OPTS)
 

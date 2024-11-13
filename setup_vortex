@@ -8,7 +8,7 @@ export LLVM_POCL=$TOOLDIR/llvm-pocl
 export POCL_CC_PATH=$TOOLDIR/pocl/compiler
 export POCL_RT_PATH=$TOOLDIR/pocl/runtime
 export RISCV_TOOLCHAIN_PATH=$TOOLDIR/riscv-gnu-toolchain
-export VERILATOR_ROOT=$TOOLDIR/verilator
+export VERILATOR_ROOT=$TOOLDIR/verilator/share/verilator
 export SV2V_PATH=$TOOLDIR/sv2v
 export YOSYS_PATH=$TOOLDIR/yosys
 

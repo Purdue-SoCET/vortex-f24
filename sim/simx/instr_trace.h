@@ -21,6 +21,8 @@
 #include "arch.h"
 #include "debug.h"
 
+#include "instr.h"
+
 namespace vortex {
 
 class ITraceData {
@@ -50,9 +52,21 @@ public:
     uint32_t idx;
   };
 
+  struct reg_data_t {
+    Word     u;
+    WordI    i;
+    WordF    f;
+    float    f32;
+    double   f64;
+    uint32_t u32;
+    uint64_t u64;
+    int32_t  i32;
+    int64_t  i64;
+  };
+
   //--
   const uint64_t uuid;
-  const Arch&    arch;
+  Arch&    arch;
 
   //--
   uint32_t    cid;
@@ -87,7 +101,23 @@ public:
 
   bool fetch_stall;
 
-  instr_trace_t(uint64_t uuid, const Arch& arch)
+  //--
+  // bool branch_mispred_flush; 
+  // bool halt;
+  // Word next_pc;  
+  // ThreadMask  next_tmask;
+  // std::vector<reg_data_t> rddata;
+
+  //--
+  uint32_t instr_code;
+  std::shared_ptr<Instr> instr;
+  bool branch_mispred_flush;
+  bool halt;  
+  std::vector<reg_data_t> rddata;
+
+
+
+  instr_trace_t(uint64_t uuid, Arch& arch)
     : uuid(uuid)
     , arch(arch)
     , cid(0)
@@ -104,6 +134,10 @@ public:
     , sop(true)
     , eop(true)
     , fetch_stall(false)
+    , instr_code(0)
+    , branch_mispred_flush(false)
+    , halt(false)
+    , rddata(1, {0,0,0,0,0,0,0,0,0})
     , log_once_(false)
   {}
 
@@ -124,6 +158,10 @@ public:
     , sop(rhs.sop)
     , eop(rhs.eop)
     , fetch_stall(rhs.fetch_stall)
+    , instr_code(rhs.instr_code)
+    , branch_mispred_flush(rhs.branch_mispred_flush)
+    , halt(rhs.halt)
+    , rddata(rhs.rddata)
     , log_once_(false)
   {}
 

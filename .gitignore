@@ -12,3 +12,4 @@
 *.depend
 *.elf
 *.vxbin
+*.log

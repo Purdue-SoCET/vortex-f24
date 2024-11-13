@@ -25,6 +25,8 @@
 #include "arch.h"
 #include "instr.h"
 
+#include "core.h"
+
 using namespace vortex;
 
 static const std::unordered_map<Opcode, InstType> sc_instTable = {
@@ -449,7 +451,7 @@ std::shared_ptr<Instr> Emulator::decode(uint32_t code) const {
   auto rs3 = (code >> shift_rs3) & mask_reg;
 
   auto op_it = sc_instTable.find(op);
-  if (op_it == sc_instTable.end()) {
+  if (op_it == sc_instTable.end()) { 
     std::cout << "Error: invalid opcode: 0x" << std::hex << static_cast<int>(op) << std::dec << std::endl;
     return nullptr;
   }

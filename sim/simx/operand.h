@@ -70,9 +70,19 @@ public:
 			Input.pop();
     };
 
-		uint32_t total_stalls() const {
-			return total_stalls_;
+	uint32_t total_stalls() const {
+		return total_stalls_;
+	}
+
+	// Clear the operand collector
+	void clear() {
+		while (!Input.empty()) {
+			Input.pop();
 		}
+		while (!Output.empty()) {
+			Output.pop(); 
+		}	
+	}
 };
 
 }

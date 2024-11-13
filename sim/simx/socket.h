@@ -11,15 +11,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// #include "scalar_core.h"
+
 #pragma once
 
 #include <simobject.h>
 #include "dcrs.h"
 #include "arch.h"
+#include "arch_sclr.h"
 #include "cache_cluster.h"
 #include "local_mem.h"
 #include "core.h"
+// #include "core_sclr.h"
 #include "constants.h"
+
 
 namespace vortex {
 
@@ -41,7 +46,8 @@ public:
   Socket(const SimContext& ctx, 
          uint32_t socket_id,
          Cluster* cluster, 
-         const Arch &arch, 
+         Arch &arch,
+         Arch_SCLR &arch_sclr, 
          const DCRS &dcrs);
 
   ~Socket();
@@ -75,11 +81,12 @@ public:
   PerfStats perf_stats() const;
   
 private:
-  uint32_t                socket_id_;
-  Cluster*                cluster_;
-  std::vector<Core::Ptr>  cores_;
-  CacheCluster::Ptr       icaches_;
-  CacheCluster::Ptr       dcaches_;
+  uint32_t                      socket_id_;
+  Cluster*                      cluster_;
+  std::vector<Core::Ptr>        cores_;
+  CacheCluster::Ptr             icaches_;
+  CacheCluster::Ptr             dcaches_;
+  uint16_t                      prev_num_threads;
 };
 
 } // namespace vortex

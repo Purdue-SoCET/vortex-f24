@@ -23,6 +23,7 @@
 namespace vortex {
 
 class Arch {
+
 private:
   uint16_t num_threads_;
   uint16_t num_warps_;
@@ -33,6 +34,7 @@ private:
   uint64_t local_mem_base_;
 
 public:
+
   Arch(uint16_t num_threads, uint16_t num_warps, uint16_t num_cores)
     : num_threads_(num_threads)
     , num_warps_(num_warps)

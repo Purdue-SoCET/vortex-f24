@@ -14,8 +14,11 @@
 #include <vx_spawn.h>
 #include <vx_intrinsics.h>
 #include <vx_print.h>
+<<<<<<< HEAD
 #include <vx_csr_defs.h>
 
+=======
+>>>>>>> remotes/origin/v2_simx_optimized_scalar_core
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -377,6 +380,7 @@ int vx_spawn_threads(uint32_t dimension,
 
     if (active_warps >= 1) {
       // execute callback on other warps
+//      vx_printf("Horray\n");
       vx_wspawn(active_warps, process_threads_stub);
 
       // activate all threads

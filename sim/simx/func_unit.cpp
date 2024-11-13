@@ -24,6 +24,8 @@
 
 using namespace vortex;
 
+// #define BRANCH_PRED 0 // 1 if you want branch prediction
+
 AluUnit::AluUnit(const SimContext& ctx, Core* core) : FuncUnit(ctx, core, "alu-unit") {}
 
 void AluUnit::tick() {
@@ -50,8 +52,11 @@ void AluUnit::tick() {
 			std::abort();
 		}
 		DT(3, this->name() << ": op=" << trace->alu_type << ", " << *trace);
+
 		if (trace->eop && trace->fetch_stall) {
-			core_->resume(trace->wid);
+			if (!BRANCH_PRED) {
+				core_->resume(trace->wid);
+			}
 		}
 		input.pop();
 	}
@@ -268,7 +273,9 @@ void SfuUnit::tick() {
 
 		DT(3, this->name() << ": op=" << trace->sfu_type << ", " << *trace);
 		if (trace->eop && release_warp)  {
-			core_->resume(trace->wid);
+			if (!BRANCH_PRED) {
+				core_->resume(trace->wid);
+			}
 		}
 
 		input.pop();

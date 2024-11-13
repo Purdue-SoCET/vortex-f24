@@ -13,42 +13,32 @@
 
 #pragma once
 
-#include <stdint.h>
-#include <VX_config.h>
-#include <mem.h>
+#include <string>
+#include <sstream>
+
+#include <cstdlib>
+#include <stdio.h>
+#include "types.h"
+#include "arch.h"
 
 namespace vortex {
 
-class Arch;
-class Arch_SCLR;
-class RAM;
-class ProcessorImpl;
-#ifdef VM_ENABLE
-class SATP_t;
-#endif
-
-class Processor {
-public:
-  Processor(Arch& arch, Arch_SCLR& arch_sclr);
-  ~Processor();
-
-  void attach_ram(RAM* mem);
-
-  void run();
-
-  void dcr_write(uint32_t addr, uint32_t value);
-#ifdef VM_ENABLE
-  bool is_satp_unset();
-  uint8_t get_satp_mode();
-  uint64_t get_base_ppn();
-  int16_t set_satp_by_addr(uint64_t addr);
-#endif
+class Arch_SCLR : public Arch {
 
 private:
-  ProcessorImpl* impl_;
-#ifdef VM_ENABLE
-  SATP_t *satp_;
-#endif
+  uint16_t num_threads_;
+  uint16_t num_warps_;
+  uint16_t num_cores_;
+  uint16_t num_clusters_;
+  uint16_t socket_size_;
+  uint16_t num_barriers_;
+  uint64_t local_mem_base_;
+
+public:
+  // Scalar core has 1 thread, 1 warp
+  Arch_SCLR(uint16_t num_cores): 
+    Arch((uint16_t)1, (uint16_t)1, num_cores) 
+  {}
 };
 
 }

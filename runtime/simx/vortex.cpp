@@ -16,6 +16,7 @@
 #include <util.h>
 #include <processor.h>
 #include <arch.h>
+#include <arch_sclr.h>
 #include <mem.h>
 #include <constants.h>
 
@@ -37,6 +38,7 @@
 
 #include <processor.h>
 #include <arch.h>
+#include <arch_sclr.h>
 #include <mem.h>
 #include <constants.h>
 #include <unordered_map>
@@ -50,8 +52,9 @@ class vx_device {
 public:
     vx_device()
         : arch_(NUM_THREADS, NUM_WARPS, NUM_CORES)
+        , arch_sclr_(NUM_WARPS, NUM_CORES)
         , ram_(0, MEM_PAGE_SIZE)
-        , processor_(arch_)
+        , processor_(arch_,arch_sclr_)
         , global_mem_(ALLOC_BASE_ADDR, GLOBAL_MEM_SIZE - ALLOC_BASE_ADDR, MEM_PAGE_SIZE, CACHE_BLOCK_SIZE)
     {
         // attach memory module
@@ -652,6 +655,7 @@ public:
 
 private:
   Arch arch_;
+  Arch_SCLR arch_sclr_;
   RAM ram_;
   Processor processor_;
   MemoryAllocator global_mem_;

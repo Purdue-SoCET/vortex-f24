@@ -19,7 +19,8 @@ using namespace vortex;
 Socket::Socket(const SimContext& ctx,
                 uint32_t socket_id,
                 Cluster* cluster,
-                const Arch &arch,
+                Arch &arch,
+                Arch_SCLR &arch_sclr,
                 const DCRS &dcrs)
   : SimObject(ctx, "socket")
   , icache_mem_req_port(this)
@@ -30,10 +31,11 @@ Socket::Socket(const SimContext& ctx,
   , cluster_(cluster)
   , cores_(arch.socket_size())
 {
-  auto cores_per_socket = cores_.size();
+  auto cores_per_socket = cores_.size(); 
 
   char sname[100];
   snprintf(sname, 100, "socket%d-icaches", socket_id);
+  // Increase number of requests icache can have?
   icaches_ = CacheCluster::Create(sname, cores_per_socket, NUM_ICACHES, 1, CacheSim::Config{
     !ICACHE_ENABLED,
     log2ceil(ICACHE_SIZE),  // C
@@ -42,8 +44,8 @@ Socket::Socket(const SimContext& ctx,
     log2ceil(ICACHE_NUM_WAYS),// A
     1,                      // B
     XLEN,                   // address bits
-    1,                      // number of ports
-    1,                      // number of inputs
+    1,                      // number of ports (per bank)
+    1,                      // number of inputs (for the cache) 
     false,                  // write-back
     false,                  // write response
     (uint8_t)arch.num_warps(), // mshr size
@@ -62,8 +64,8 @@ Socket::Socket(const SimContext& ctx,
     log2ceil(DCACHE_NUM_WAYS),// A
     log2ceil(DCACHE_NUM_BANKS), // B
     XLEN,                   // address bits
-    1,                      // number of ports
-    DCACHE_NUM_REQS,        // number of inputs
+    1,                      // number of ports (per bank)
+    DCACHE_NUM_REQS,        // number of inputs (for the cache)
     DCACHE_WRITEBACK,       // write-back
     false,                  // write response
     DCACHE_MSHR_SIZE,       // mshr size
@@ -74,10 +76,11 @@ Socket::Socket(const SimContext& ctx,
   dcache_mem_rsp_port.bind(&dcaches_->MemRspPort);
 
   // create cores
-
+  // Create the SIMT cores
+  // for (uint32_t i = 0; i < cores_per_socket/2; ++i) {
   for (uint32_t i = 0; i < cores_per_socket; ++i) {
     uint32_t core_id = socket_id * cores_per_socket + i;
-    cores_.at(i) = Core::Create(core_id, this, arch, dcrs);
+    cores_.at(i) = Core::Create(core_id, this, arch, dcrs); 
 
     cores_.at(i)->icache_req_ports.at(0).bind(&icaches_->CoreReqPorts.at(i).at(0));
     icaches_->CoreRspPorts.at(i).at(0).bind(&cores_.at(i)->icache_rsp_ports.at(0));
@@ -87,6 +90,21 @@ Socket::Socket(const SimContext& ctx,
       dcaches_->CoreRspPorts.at(i).at(j).bind(&cores_.at(i)->dcache_rsp_ports.at(j));
     }
   }
+
+  // Create the scalar cores (this doesn't run right now)
+  // for (uint32_t i = cores_per_socket/2; i < cores_per_socket; ++i) {
+  //   uint32_t core_id = socket_id * cores_per_socket + i;
+  //   cores_.at(i) = Core::Create(core_id, this, arch_sclr, dcrs);
+
+  //   cores_.at(i)->icache_req_ports.at(0).bind(&icaches_->CoreReqPorts.at(i).at(0));
+  //   icaches_->CoreRspPorts.at(i).at(0).bind(&cores_.at(i)->icache_rsp_ports.at(0));
+
+  //   for (uint32_t j = 0; j < DCACHE_NUM_REQS; ++j) {
+  //     cores_.at(i)->dcache_req_ports.at(j).bind(&dcaches_->CoreReqPorts.at(i).at(j));
+  //     dcaches_->CoreRspPorts.at(i).at(j).bind(&cores_.at(i)->dcache_rsp_ports.at(j));
+  //   }
+  // }
+
 }
 
 Socket::~Socket() {
@@ -112,6 +130,7 @@ void Socket::set_satp(uint64_t satp) {
   for (auto core : cores_) {
     core->set_satp(satp);
   }
+
 }
 #endif
 
@@ -120,6 +139,7 @@ bool Socket::running() const {
     if (core->running())
       return true;
   }
+
   return false;
 }
 
@@ -128,15 +148,16 @@ int Socket::get_exitcode() const {
   for (auto& core : cores_) {
     exitcode |= core->get_exitcode();
   }
+
   return exitcode;
 }
 
 void Socket::barrier(uint32_t bar_id, uint32_t count, uint32_t core_id) {
-  cluster_->barrier(bar_id, count, socket_id_ * cores_.size() + core_id);
+  cluster_->barrier(bar_id, count, socket_id_ * (cores_.size()) + core_id); //cores_.size()+cores_sclr_.size()
 }
 
 void Socket::resume(uint32_t core_index) {
-  cores_.at(core_index)->resume(-1);
+    cores_.at(core_index)->resume(-1);
 }
 
 Socket::PerfStats Socket::perf_stats() const {
