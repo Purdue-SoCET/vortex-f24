@@ -29,8 +29,6 @@
 
 using namespace vortex;
 
-// #define BRANCH_PRED 0 // 1 if you want to be using the optimized scalar core
-
 union reg_data_t {
   Word     u;
   WordI    i;
