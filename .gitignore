@@ -3,3 +3,4 @@
 *.cache
 *.code-workspace
 /tools/*
+*.log
