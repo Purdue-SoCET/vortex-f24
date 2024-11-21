@@ -35,17 +35,30 @@ def is_tid_on(tmask, tid):
 	return tmask[tid]
 
 # Finds most recent tmask where the scalarized thread has been active
-def find_reconv_tmask(idx, tmasks, tmask, tid):
+def find_reconv_tmask(idx, tmasks, tmask, tid, instrs, div_instrs):
 
 	reconverge_tmask = ""
+	is_split		 = 0
 	
 	while True:
 		prev_tmask = tmasks[idx]
 
 		if(prev_tmask != tmask):
 			if(is_tid_on(prev_tmask, tid)):
-				reconverge_tmask = prev_tmask
-				break
+				split_instr = instrs[idx]
+
+				if split_instr not in div_instrs.keys():
+					new_dict_entry = {split_instr: 0}
+					div_instrs.update(new_dict_entry)
+				
+				div_instrs[split_instr] += 1
+
+				if(split_instr == "SPLIT" or split_instr == "SPLIT.N"):
+					reconverge_tmask = prev_tmask
+					is_split = 1
+					break
+				else:
+					break
 			
 			idx -= 1
 		
@@ -53,8 +66,8 @@ def find_reconv_tmask(idx, tmasks, tmask, tid):
 			if(idx == 0):
 				break
 			idx -= 1
-
-	return reconverge_tmask
+	
+	return reconverge_tmask, is_split, div_instrs
 
 
 def reconverge(tmask, scalar_mask, reconverge_tmask):
@@ -114,7 +127,7 @@ def and_scalar_mask(tmask, scalar_mask):
 #
 # 7. simd_efficiency: The Percentage of the SIMD pipeline on the SIMT core that is utilized in simulation
 
-def sat_counters(tmasks, ids, theta=1000, num_threads=32, capacity=32, num_scalar=1):
+def sat_counters(tmasks, instrs, scalarize_t0, theta=1000, num_threads=32, capacity=32, num_scalar=1):
 	# Baseline number of cycles executed on vortex GPU
 	total_cycles         = len(tmasks)
 	sim_cycles			 = 0
@@ -126,9 +139,14 @@ def sat_counters(tmasks, ids, theta=1000, num_threads=32, capacity=32, num_scala
 	simd_efficiency		 = 0
 	total_active_threads = 0
 
+	attempts_at_scalarization = 0
+	failed_pred_scalarization = 0
+
 	check_tmasks 		 = 0
 	check_tmasks_list 	 = []
 	check_reconv_tmask	 = ""
+
+	div_instrs 			 = {}
 	
 	speed_up	 		 = 0
 	scalarized_threads 	 = {}
@@ -152,11 +170,11 @@ def sat_counters(tmasks, ids, theta=1000, num_threads=32, capacity=32, num_scala
 			
 			tmask_vector = conv_str_to_list(tmask) # Turn tmask string into bit vector
 			acceptable_num_scalar = list(range(1,num_scalar+1))
-			# print(acceptable_num_scalar)
+			
 			if(count_active_threads(tmask_vector) in acceptable_num_scalar):
 				### If so increment the coressponding thread's saturating counter 
 				tids = get_tid(tmask_vector, num_scalar)
-				# print(tids)
+				
 				for tid in tids:
 					if(tid != None):
 						sat_counters[tid] += 1
@@ -164,30 +182,29 @@ def sat_counters(tmasks, ids, theta=1000, num_threads=32, capacity=32, num_scala
 						### Check if count of the threads sat_counter reached threshold (theta)
 						### If so check the capacity 
 
-						if(sat_counters[tid] >= theta and occupancy < capacity):
+						if(sat_counters[tid] >= theta and occupancy < capacity and (scalarize_t0 or (not scalarize_t0 and not(tid == 0)))):
 							##### If we have capacity set the tmasks status to on the scalar core and reset the counter
-							# tmask_status[tmask] = 1
-							sat_counters[tid] = 0
+							
+							reconverge_tmask[tid], is_split, div_instrs = find_reconv_tmask(idx, tmasks, tmask, tid, instrs, div_instrs)
+							attempts_at_scalarization += 1
 
-							occupancy += 1
+							if(is_split):
+								sat_counters[tid] = 0
 
-							if(occupancy > max_occupancy):
-								max_occupancy = occupancy
+								occupancy += 1
 
-							if tmask not in scalarized_threads.keys():
-								scalarized_threads[tmask] = 0
+								if(occupancy > max_occupancy):
+									max_occupancy = occupancy
 
-							scalarized_threads[tmask] += 1
-							per_thread_count[tid]     += 1
-							scalar_mask[tid]		   = 1
-							reconverge_tmask[tid] = find_reconv_tmask(idx, tmasks, tmask, tid)
+								if tmask not in scalarized_threads.keys():
+									scalarized_threads[tmask] = 0
 
-							if(tid == 1):
-								check_tmasks = 1
-								# print(ids[idx], tmasks[idx])
-								check_idx = idx
-								check_reconv_tmask = reconverge_tmask[1]
-
+								scalarized_threads[tmask] += 1
+								per_thread_count[tid]     += 1
+								scalar_mask[tid]		   = 1
+							
+							else:
+								failed_pred_scalarization += 1
 
 
 			## Check if the tmask is a reconvergence tmask for any of the threads
@@ -204,13 +221,14 @@ def sat_counters(tmasks, ids, theta=1000, num_threads=32, capacity=32, num_scala
 		else:
 			pass
 
-	speed_up = total_cycles/sim_cycles
-	cycles_saved = total_cycles - sim_cycles
+	speed_up		= total_cycles/sim_cycles
+	cycles_saved 	= total_cycles - sim_cycles
 	simd_efficiency = total_active_threads*100/(sim_cycles*32)
+	frac_pred 		= failed_pred_scalarization / attempts_at_scalarization
 
 	# print(check_reconv_tmask in check_tmasks_list)
 	# print(ids[check_idx], check_reconv_tmask)
-	return speed_up, scalarized_threads, max_occupancy, num_reconv, cycles_saved, per_thread_count, simd_efficiency
+	return speed_up, scalarized_threads, max_occupancy, num_reconv, cycles_saved, per_thread_count, simd_efficiency, frac_pred, div_instrs
 
 
 			
@@ -252,9 +270,6 @@ if __name__ == "__main__":
 				warp_id = re.search(tmask_pattern,line).group(2)
 				tmask = re.search(tmask_pattern,line).group(3)
 				ids1  = re.search(tmask_pattern,line).group(5)
-
-				# if(ids1 == "#12879"):
-				# 	print(tmask)
 				
 				instr_line = file.readline()
 				instr = re.search(instr_pattern,instr_line).group(2)
@@ -309,19 +324,28 @@ if __name__ == "__main__":
 		if(percent > 0):
 			print(f'{thread_num+1:<4}                     | {percent:.2f}')
 
-	speed_up, scalarized_threads, max_occupancy, num_reconv, cycles_saved, per_thread_count, simd_efficiency = sat_counters(tmasks, ids, theta=1000, num_threads=num_threads, capacity=32, num_scalar=1)
+	theta = 500
+	capacity = 16
+	num_scalar = 4
+	scalarize_t0 = 0
+
+	speed_up, scalarized_threads, max_occupancy, num_reconv, cycles_saved, per_thread_count, simd_efficiency, frac_pred, div_instrs = sat_counters(tmasks, instrs, scalarize_t0, theta=theta, num_threads=num_threads, capacity=capacity, num_scalar=num_scalar)
 	num_scalarizations = 0
 
 	for scalar_tmask in scalarized_threads.keys():
 		num_scalarizations += scalarized_threads[scalar_tmask]
 
+	# for key in div_instrs.keys():
+	# 	print(key, div_instrs[key])
+
 	print("\n******************************************")
-	print("Saturating Counters:")
+	print(f'Saturating Counters: Theta={theta}, Capacity={capacity}, Thread Scalarization Bandwidth={num_scalar}')
 	print(f'Number of Cycles Saved:           {cycles_saved}')
 	print(f'Percentage of Total Cycles Saved: {cycles_saved*100/len(tmasks):.2f}')
-	print(f'Speed Up: 		          {speed_up:.3f}')
+	print(f'Speed Up: 		          {(speed_up-1)*100:.3f}')
 	print(f'Rel SIMD Eff:                     {rel_simd_efficiency:.3f}')
 	print(f'Sim SIMD Eff:	                  {simd_efficiency:.3f}')
+	print(f'Percentage of Not SPLIT Div:	  {frac_pred*100:.3f}')
 	print(f'Max Occupancy:		          {max_occupancy}')
 	print(f'Number of Scalarizations: 	  {num_scalarizations}')
 	print(f'Number of Reconvergences:         {num_reconv}')
