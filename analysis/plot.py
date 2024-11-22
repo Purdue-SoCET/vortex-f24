@@ -43,7 +43,7 @@ if __name__ == "__main__":
 
         avg_rel_simd_efficiency = [expr[avg_rel_simd_efficiency_idx-1] for expr in data]
         avg_simd_efficiency = [expr[avg_simd_efficiency_idx-1] for expr in data]
-        avg_diff_simd_efficiency = [avg_simd_efficiency[i] - avg_rel_simd_efficiency[i] for i in range(len(avg_simd_efficiency))]
+        avg_pct_delta_simd_efficiency = [(avg_simd_efficiency[i] - avg_rel_simd_efficiency[i])*100/avg_rel_simd_efficiency[i] for i in range(len(avg_simd_efficiency))]
 
         avg_pct_non_split_div = [expr[avg_pct_non_split_div_idx-1] for expr in data]
         avg_max_ocp = [expr[avg_max_ocp_idx-1] for expr in data]
@@ -77,9 +77,9 @@ if __name__ == "__main__":
         plt.savefig(f'plots/avg_pct_cycles_saved_{num_scalar}.png')
         plt.close()
 
-        plt.plot(thetas, avg_diff_simd_efficiency)
+        plt.plot(thetas, avg_pct_delta_simd_efficiency)
         plt.xlabel("Saturation Limit")
-        plt.ylabel("SIMD Efficiency Difference")
+        plt.ylabel("Percentage Change in SIMD Efficiency")
         plt.title(f'Scalarization Bandwidth: {num_scalar}')
         plt.savefig(f'plots/avg_diff_simd_efficiency_{num_scalar}.png')
         plt.close()
