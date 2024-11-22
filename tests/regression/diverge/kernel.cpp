@@ -48,22 +48,24 @@ void kernel_body(kernel_arg_t* __UNIFORM__ arg) {
 	}
 
 	// switch
-	switch (task_id) {
-	case 0:
-		value += 1;
-		break;
-	case 1:
-		value -= 1;
-		break;
-	case 2:
-		value *= 3;
-		break;
-	case 3:
-		value *= 5;
-		break;
-	default:
-		//assert(task_id < arg->num_points);
-		break;
+	for(int i = 0; i < 64; i++){
+		switch (task_id%4) {
+		case 0:
+			value += 1;
+			break;
+		case 1:
+			value -= 1;
+			break;
+		case 2:
+			value *= 3;
+			break;
+		case 3:
+			value *= 5;
+			break;
+		default:
+			//assert(task_id < arg->num_points);
+			break;
+		}
 	}
 
 	// select

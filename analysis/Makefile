@@ -1,4 +1,4 @@
-SOURCE_FILE := ../bfs_run.log
+SOURCE_FILE := ../run.log
 
 expirement:
 	python3 heuristic_sim.py $(SOURCE_FILE)
@@ -11,3 +11,7 @@ clean_images:
 
 clean_data:
 	@rm *.json
+
+clean_all:
+	@make clean_data
+	@make clean_images

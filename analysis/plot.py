@@ -20,9 +20,17 @@ if __name__ == "__main__":
 
     num_scalar_data = {}
 
+    max_stats = {}
+
+    max_stats["max_pct_cycles_saved"]           = [0,0,0]
+    max_stats["max_speed_up"]                   = [0,0,0]
+    max_stats["max_pct_delta_simd_efficiency"]  = [0,0,0]
+    max_stats["max_num_scalarizations"]         = [0,0,0]
+
     with open(source_file, "r") as f:
         expirements = json.load(f)
 
+    # Initializing data dict to allow accesses for each num_scalar (scalarization bandwidth)
     for key in expirements.keys():
         expirement = expirements[key]
 
@@ -50,19 +58,35 @@ if __name__ == "__main__":
         avg_pct_max_cap = [expr[avg_pct_max_cap_idx-1] for expr in data]
         avg_num_scalarizations = [expr[avg_num_scalarizations_idx-1] for expr in data]
 
+        # Checking for errors in statistics
+        # for i in range(len(thetas)):
+        #     if avg_pct_non_split_div[i] > 100:
+        #         print(f'Percentage of Non-Split Divergence too high = {avg_pct_non_split_div[i]} for theta = {thetas[i]} and num_scalar = {num_scalar}')
 
-        for i in range(len(thetas)):
-            if avg_pct_non_split_div[i] > 100:
-                print(f'Percentage of Non-Split Divergence too high = {avg_pct_non_split_div[i]} for theta = {thetas[i]} and num_scalar = {num_scalar}')
+        #     if avg_max_ocp[i] > 16:
+        #         print(f'Max Occupancy too high = {avg_max_ocp[i]} for theta = {thetas[i]} and num_scalar = {num_scalar}')
 
-            if avg_max_ocp[i] > 16:
-                print(f'Max Occupancy too high = {avg_max_ocp[i]} for theta = {thetas[i]} and num_scalar = {num_scalar}')
-
-            if avg_pct_max_cap[i] > 100:
-                print(f'Percentage of Max Capacity = {avg_pct_max_cap[i]} too high for theta = {thetas[i]} and num_scalar = {num_scalar}')
+        #     if avg_pct_max_cap[i] > 100:
+        #         print(f'Percentage of Max Capacity = {avg_pct_max_cap[i]} too high for theta = {thetas[i]} and num_scalar = {num_scalar}')
 
 
+        # Finding max statistics and configurations
+        stats = [
+            ("max_speed_up", avg_speed_ups),
+            ("max_pct_cycles_saved", avg_pct_cycles_saved),
+            ("max_pct_delta_simd_efficiency", avg_pct_delta_simd_efficiency),
+            ("max_num_scalarizations", avg_num_scalarizations),
+        ]
 
+        for idx in range(len(avg_speed_ups)):
+            for stat_key, stat_values in stats:
+                if stat_values[idx] > max_stats[stat_key][0]:
+                    max_stats[stat_key][0] = stat_values[idx]
+                    max_stats[stat_key][1] = num_scalar
+                    max_stats[stat_key][2] = thetas[idx]
+
+
+        # Plotting all statistics for the given scalarization bandwidth
         plt.plot(thetas, avg_speed_ups)
         plt.xlabel("Saturation Limit")
         plt.ylabel("Speed Ups (%)")
@@ -111,3 +135,10 @@ if __name__ == "__main__":
         plt.title(f'Scalarization Bandwidth: {num_scalar}')
         plt.savefig(f'plots/avg_num_scalarizations_{num_scalar}.png')
         plt.close()
+
+    print("***********************")
+    print("Max Statistics")
+    for key in max_stats.keys():
+        value = max_stats[key]
+        print(f'{key:<30}: {value[0]:<10.3f} with num_scalar={value[1]} and theta={value[2]}')
+    print("***********************")
