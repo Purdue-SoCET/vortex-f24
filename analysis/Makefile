@@ -7,7 +7,7 @@ plot:
 	python3 plot.py
 
 clean_images:
-	@rm *.png
+	@rm plots/*.png
 
 clean_data:
 	@rm *.json

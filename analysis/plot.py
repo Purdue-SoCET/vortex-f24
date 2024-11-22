@@ -50,6 +50,19 @@ if __name__ == "__main__":
         avg_pct_max_cap = [expr[avg_pct_max_cap_idx-1] for expr in data]
         avg_num_scalarizations = [expr[avg_num_scalarizations_idx-1] for expr in data]
 
+
+        for i in range(len(thetas)):
+            if avg_pct_non_split_div[i] > 100:
+                print(f'Percentage of Non-Split Divergence too high = {avg_pct_non_split_div[i]} for theta = {thetas[i]} and num_scalar = {num_scalar}')
+
+            if avg_max_ocp[i] > 16:
+                print(f'Max Occupancy too high = {avg_max_ocp[i]} for theta = {thetas[i]} and num_scalar = {num_scalar}')
+
+            if avg_pct_max_cap[i] > 100:
+                print(f'Percentage of Max Capacity = {avg_pct_max_cap[i]} too high for theta = {thetas[i]} and num_scalar = {num_scalar}')
+
+
+
         plt.plot(thetas, avg_speed_ups)
         plt.xlabel("Saturation Limit")
         plt.ylabel("Speed Ups (%)")

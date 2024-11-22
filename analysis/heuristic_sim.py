@@ -335,25 +335,29 @@ if __name__ == "__main__":
 		print(instr_line)
 		print("Error opening the log file f'{source}")
 
-	avg_speed_up = 0
-	avg_num_cycles_saved = 0
-	avg_pct_cycles_saved = 0
-	avg_rel_simd_efficiency = 0
-	avg_simd_efficiency = 0
-	avg_pct_non_split_div= 0
-	avg_max_ocp = 0
-	avg_pct_max_cap = 0
-	avg_num_scalarizations = 0
-	avg_num_reconvergences = 0
-
 	thetas = range(10, 5000, 100)
 	num_scalars = range(1, 9)
 	capacity = 16
+	
 	expirement = {}
-	print("Number of Expirements to be ran:", len(thetas)*len(num_scalars))
+	number_of_expirements_done = 0
+	progress = 0
+	num_expirements = len(thetas)*len(num_scalars)
+
+	print("Number of Expirements to be ran:", num_expirements)
 
 	for num_scalar in num_scalars:
 		for theta in thetas:
+			avg_speed_up = 0
+			avg_num_cycles_saved = 0
+			avg_pct_cycles_saved = 0
+			avg_rel_simd_efficiency = 0
+			avg_simd_efficiency = 0
+			avg_pct_non_split_div= 0
+			avg_max_ocp = 0
+			avg_pct_max_cap = 0
+			avg_num_scalarizations = 0
+			avg_num_reconvergences = 0
 			for warp_id in warps_to_probe:
 
 				tmask_profile = [0]*num_threads
@@ -372,15 +376,16 @@ if __name__ == "__main__":
 
 				tmask_percentages = [num*100/len(tmasks) for num in tmask_profile]
 				rel_simd_efficiency  = total_active_threads*100 / (len(tmasks)*32)
-				
-				print(f'\nWarp {warp_id} Statistics')
-				print("Number of Thread Masks Processed:", len(tmasks))
-				print("Thread Mask Profile")
-				print("Number of Active Threads | Percentage of Thread Masks")
-				print("-------------------------------------------------")
-				for thread_num, percent in enumerate(tmask_percentages):
-					if(percent > 0):
-						print(f'{thread_num+1:<4}                     | {percent:.2f}')
+
+				if(number_of_expirements_done == 0):
+					print(f'\nWarp {warp_id} Statistics')
+					print("Number of Thread Masks Processed:", len(tmasks))
+					print("Thread Mask Profile")
+					print("Number of Active Threads | Percentage of Thread Masks")
+					print("-------------------------------------------------")
+					for thread_num, percent in enumerate(tmask_percentages):
+						if(percent > 0):
+							print(f'{thread_num+1:<4}                     | {percent:.2f}')
 
 				if(warp_id != "0"):
 					scalarize_t0 = 1
@@ -419,30 +424,31 @@ if __name__ == "__main__":
 				avg_num_scalarizations  += num_scalarizations
 				avg_num_reconvergences  += num_reconv
 
-				print("\n******************************************")
-				print(f'Saturating Counters: Theta={theta}, Capacity={capacity}, Thread Scalarization Bandwidth={num_scalar}')
-				print(f'Number of Cycles Saved:           {cycles_saved}')
-				print(f'Percentage of Total Cycles Saved: {cycles_saved*100/len(tmasks):.2f}')
-				print(f'Speed Up (%): 		          {(speed_up-1)*100:.3f}')
-				print(f'Rel SIMD Eff:                     {rel_simd_efficiency:.3f}')
-				print(f'Sim SIMD Eff:	                  {simd_efficiency:.3f}')
-				print(f'Percentage of Not SPLIT Div:	  {frac_pred*100:.3f}')
-				print(f'Max Occupancy:		          {max_occupancy}')
-				print(f'Percentage of Max Capacity:	  {frac_ocp_full*100:.3f}')
-				print(f'Number of Scalarizations: 	  {num_scalarizations}')
-				print(f'Number of Reconvergences:         {num_reconv}')
-				print(f'\nScalarized Thread Masks:')
-				print("Thread Mask           	         | Number of Times Caused Scalarization")
-				print("------------------------------------------------------------------------")
-				for tmask in scalarized_threads.keys():
-					print(f'{tmask:<32} | {scalarized_threads[tmask]}')
-				print(f'\nThread Scalarization:')
-				print("Thread Number | Number of Times Thread Scalarized")
-				print("-------------------------------------------------")
-				for tid in range(len(per_thread_count)):
-					if per_thread_count[tid] > 0:
-						print(f'{tid:<4}          | {per_thread_count[tid]}')
-				print("******************************************")
+				if(number_of_expirements_done == 0):
+					print("\n******************************************")
+					print(f'Saturating Counters: Theta={theta}, Capacity={capacity}, Thread Scalarization Bandwidth={num_scalar}')
+					print(f'Number of Cycles Saved:           {cycles_saved}')
+					print(f'Percentage of Total Cycles Saved: {cycles_saved*100/len(tmasks):.2f}')
+					print(f'Speed Up (%): 		          {(speed_up-1)*100:.3f}')
+					print(f'Rel SIMD Eff:                     {rel_simd_efficiency:.3f}')
+					print(f'Sim SIMD Eff:	                  {simd_efficiency:.3f}')
+					print(f'Percentage of Not SPLIT Div:	  {frac_pred*100:.3f}')
+					print(f'Max Occupancy:		          {max_occupancy}')
+					print(f'Percentage of Max Capacity:	  {frac_ocp_full*100:.3f}')
+					print(f'Number of Scalarizations: 	  {num_scalarizations}')
+					print(f'Number of Reconvergences:         {num_reconv}')
+					print(f'\nScalarized Thread Masks:')
+					print("Thread Mask           	         | Number of Times Caused Scalarization")
+					print("------------------------------------------------------------------------")
+					for tmask in scalarized_threads.keys():
+						print(f'{tmask:<32} | {scalarized_threads[tmask]}')
+					print(f'\nThread Scalarization:')
+					print("Thread Number | Number of Times Thread Scalarized")
+					print("-------------------------------------------------")
+					for tid in range(len(per_thread_count)):
+						if per_thread_count[tid] > 0:
+							print(f'{tid:<4}          | {per_thread_count[tid]}')
+					print("******************************************")
 
 			avg_speed_up 			/= num_warps
 			avg_num_cycles_saved 	/= num_warps
@@ -457,20 +463,26 @@ if __name__ == "__main__":
 
 			expirement[str((num_scalar,theta))] = [num_scalar,theta,avg_num_cycles_saved,avg_pct_cycles_saved,avg_speed_up,avg_rel_simd_efficiency,avg_simd_efficiency,avg_pct_non_split_div,avg_max_ocp,avg_pct_max_cap,avg_num_scalarizations,avg_num_reconvergences]
 
-			print("\n******************************************")
-			print("Core Wide Statistics")
-			print(f'Saturating Counters: Theta={theta}, Capacity={capacity}, Thread Scalarization Bandwidth={num_scalar}')
-			print(f'Avg. Number of Cycles Saved:           {avg_num_cycles_saved}')
-			print(f'Avg. Percentage of Total Cycles Saved: {avg_pct_cycles_saved:.2f}')
-			print(f'Avg. Speed Up (%): 		       {avg_speed_up:.3f}')
-			print(f'Avg. Rel SIMD Eff:                     {avg_rel_simd_efficiency:.3f}')
-			print(f'Avg. Sim SIMD Eff:	               {avg_simd_efficiency:.3f}')
-			print(f'Avg. Percentage of Not SPLIT Div:      {avg_pct_non_split_div:.3f}')
-			print(f'Avg. Max Occupancy:		       {avg_max_ocp}')
-			print(f'Avg. Percentage of Max Capacity:       {avg_pct_max_cap:.3f}')
-			print(f'Avg. Number of Scalarizations: 	       {avg_num_scalarizations}')
-			print(f'Avg. Number of Reconvergences:         {avg_num_reconvergences}')
-			print("******************************************")
+			if(number_of_expirements_done == 0):
+				print("\n******************************************")
+				print("Core Wide Statistics")
+				print(f'Saturating Counters: Theta={theta}, Capacity={capacity}, Thread Scalarization Bandwidth={num_scalar}')
+				print(f'Avg. Number of Cycles Saved:           {avg_num_cycles_saved}')
+				print(f'Avg. Percentage of Total Cycles Saved: {avg_pct_cycles_saved:.2f}')
+				print(f'Avg. Speed Up (%): 		       {avg_speed_up:.3f}')
+				print(f'Avg. Rel SIMD Eff:                     {avg_rel_simd_efficiency:.3f}')
+				print(f'Avg. Sim SIMD Eff:	               {avg_simd_efficiency:.3f}')
+				print(f'Avg. Percentage of Not SPLIT Div:      {avg_pct_non_split_div:.3f}')
+				print(f'Avg. Max Occupancy:		       {avg_max_ocp}')
+				print(f'Avg. Percentage of Max Capacity:       {avg_pct_max_cap:.3f}')
+				print(f'Avg. Number of Scalarizations: 	       {avg_num_scalarizations}')
+				print(f'Avg. Number of Reconvergences:         {avg_num_reconvergences}')
+				print("******************************************")
+
+			number_of_expirements_done += 1
+			progress = number_of_expirements_done / num_expirements
+			print(f"\rExpirement Progress: {progress*100:.0f}%", end="")
+
 
 	with open(results_file, "w") as f:
 		json.dump(expirement, f)
