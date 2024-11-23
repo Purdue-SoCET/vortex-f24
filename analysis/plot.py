@@ -1,5 +1,6 @@
 import json
 import matplotlib.pyplot as plt
+import numpy as np
 
 if __name__ == "__main__":
     source_file = "expirements.json"
@@ -41,7 +42,8 @@ if __name__ == "__main__":
             num_scalar_data[num_scalar] = []
         
         num_scalar_data[num_scalar].append(expirement[theta_idx:avg_num_reconvergences_idx])
-        
+    
+
     for num_scalar in num_scalar_data.keys():
         data = num_scalar_data[num_scalar]
 
@@ -86,11 +88,36 @@ if __name__ == "__main__":
                     max_stats[stat_key][2] = thetas[idx]
 
 
+        # Finding knee in the graph
+        min_pct_chg = 0.8
+
+        speed_up_knee            = avg_speed_ups[0]
+        pct_cycles_saved_knee    = avg_pct_cycles_saved[0]
+        simd_efficiency_knee     = avg_pct_delta_simd_efficiency[0]
+        num_scalarization_knee   = avg_num_scalarizations[0]
+
+        knee_list = [
+            [speed_up_knee, 0],
+            [pct_cycles_saved_knee, 0],
+            [simd_efficiency_knee,0],
+            [num_scalarization_knee,0]
+        ]
+
+        for idx in range(len(thetas)):
+            for stats_idx, tup in enumerate(stats):
+                 _ , data = tup
+                 dy = np.gradient(data, thetas)
+                 ddy = np.gradient(dy, thetas)
+                 knee_idx = np.argmin(ddy)
+                 knee_list[stats_idx] = [data[knee_idx], thetas[knee_idx]]
+
         # Plotting all statistics for the given scalarization bandwidth
         plt.plot(thetas, avg_speed_ups)
         plt.xlabel("Saturation Limit")
         plt.ylabel("Speed Ups (%)")
         plt.title(f'Scalarization Bandwidth: {num_scalar}')
+        plt.plot(knee_list[0][1], knee_list[0][0], 'ro')
+        plt.text(knee_list[0][1], knee_list[0][0], f'({knee_list[0][1]}, {knee_list[0][0]:.2f})')
         plt.savefig(f'plots/avg_speed_ups_{num_scalar}.png')
         plt.close()
 
@@ -98,6 +125,8 @@ if __name__ == "__main__":
         plt.xlabel("Saturation Limit")
         plt.ylabel("Percentage Cycles Saved")
         plt.title(f'Scalarization Bandwidth: {num_scalar}')
+        plt.plot(knee_list[1][1], knee_list[1][0], 'ro')
+        plt.text(knee_list[1][1], knee_list[1][0], f'({knee_list[1][1]}, {knee_list[1][0]:.2f})')
         plt.savefig(f'plots/avg_pct_cycles_saved_{num_scalar}.png')
         plt.close()
 
@@ -105,6 +134,8 @@ if __name__ == "__main__":
         plt.xlabel("Saturation Limit")
         plt.ylabel("Percentage Change in SIMD Efficiency")
         plt.title(f'Scalarization Bandwidth: {num_scalar}')
+        plt.plot(knee_list[2][1], knee_list[2][0], 'ro')
+        plt.text(knee_list[2][1], knee_list[2][0], f'({knee_list[2][1]}, {knee_list[2][0]:.2f})')
         plt.savefig(f'plots/avg_diff_simd_efficiency_{num_scalar}.png')
         plt.close()
 
@@ -133,6 +164,8 @@ if __name__ == "__main__":
         plt.xlabel("Saturation Limit")
         plt.ylabel("Number of Scalarizations")
         plt.title(f'Scalarization Bandwidth: {num_scalar}')
+        plt.plot(knee_list[3][1], knee_list[3][0], 'ro')
+        plt.text(knee_list[3][1], knee_list[3][0], f'({knee_list[3][1]}, {knee_list[3][0]:.2f})')
         plt.savefig(f'plots/avg_num_scalarizations_{num_scalar}.png')
         plt.close()
 
