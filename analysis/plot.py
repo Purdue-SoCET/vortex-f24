@@ -48,7 +48,7 @@ if __name__ == "__main__":
         data = num_scalar_data[num_scalar]
 
         thetas = [expr[theta_idx-1] for expr in data]
-        avg_speed_ups = [expr[avg_speed_up_idx-1] for expr in data]
+        avg_speed_ups = [(expr[avg_speed_up_idx-1]-1)*100 for expr in data]
         avg_pct_cycles_saved = [expr[avg_pct_cycles_saved_idx-1] for expr in data]
 
         avg_rel_simd_efficiency = [expr[avg_rel_simd_efficiency_idx-1] for expr in data]

@@ -1,4 +1,4 @@
-SOURCE_FILE := ../run.log
+SOURCE_FILE := ../bfs_run.log
 
 expirement:
 	python3 heuristic_sim.py $(SOURCE_FILE)

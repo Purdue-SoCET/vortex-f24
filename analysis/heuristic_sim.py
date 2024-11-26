@@ -171,6 +171,7 @@ def sat_counters(tmasks, instrs, scalarize_t0, theta=1000, num_threads=32, capac
 	speed_up	 		 = 0
 	scalarized_threads 	 = {}
 	scalar_mask 		 = [0]*num_threads
+	average_div_dur 	 = [0]*num_threads
 	per_thread_count     = [0]*num_threads
 	sat_counters		 = [0]*num_threads
 	reconverge_tmask	 = [""]*num_threads
@@ -179,6 +180,10 @@ def sat_counters(tmasks, instrs, scalarize_t0, theta=1000, num_threads=32, capac
 		if(check_tmasks):
 			check_tmasks_list.append(tmask)	
 		# Check if tmask is on the scalar core or not
+
+		for idxs, bit in enumerate(scalar_mask):
+			if (bit):
+				average_div_dur[idxs] += 1
 
 		tmask_on_simt, active_threads = and_scalar_mask(tmask, scalar_mask)
 		total_active_threads += active_threads
@@ -256,8 +261,12 @@ def sat_counters(tmasks, instrs, scalarize_t0, theta=1000, num_threads=32, capac
 	frac_ocp_full = 0
 	if(num_check_occupancy != 0):
 		frac_ocp_full	= num_occupancy_full / num_check_occupancy
+
+	for idx in range(len(average_div_dur)):
+		if(per_thread_count[idx] > 0):
+			average_div_dur[idx] /= per_thread_count[idx]
 	
-	return speed_up, scalarized_threads, max_occupancy, num_reconv, cycles_saved, per_thread_count, simd_efficiency, frac_pred, frac_ocp_full, div_instrs
+	return speed_up, scalarized_threads, max_occupancy, num_reconv, cycles_saved, per_thread_count, simd_efficiency, frac_pred, frac_ocp_full, div_instrs, average_div_dur
 
 
 			
@@ -335,8 +344,8 @@ if __name__ == "__main__":
 		print(instr_line)
 		print("Error opening the log file f'{source}")
 
-	thetas = range(10, 5000, 100)
-	num_scalars = range(1, 9)
+	thetas = [10]#range(10, 5000, 100)
+	num_scalars = [1]#range(1, 9)
 	capacity = 16
 	
 	expirement = {}
@@ -393,7 +402,7 @@ if __name__ == "__main__":
 				else:
 					scalarize_t0 = 0
 
-				speed_up, scalarized_threads, max_occupancy, num_reconv, cycles_saved, per_thread_count, simd_efficiency, frac_pred, frac_ocp_full, div_instrs = sat_counters(tmasks, instrs, scalarize_t0, theta=theta, num_threads=num_threads, capacity=capacity, num_scalar=num_scalar)
+				speed_up, scalarized_threads, max_occupancy, num_reconv, cycles_saved, per_thread_count, simd_efficiency, frac_pred, frac_ocp_full, div_instrs, average_div_dur = sat_counters(tmasks, instrs, scalarize_t0, theta=theta, num_threads=num_threads, capacity=capacity, num_scalar=num_scalar)
 				num_scalarizations = 0
 
 				for scalar_tmask in scalarized_threads.keys():
@@ -412,6 +421,7 @@ if __name__ == "__main__":
 				warps_stats[warp_id].append(scalarized_threads)
 				warps_stats[warp_id].append(per_thread_count)
 				warps_stats[warp_id].append(div_instrs)
+				warps_stats[warp_id].append(average_div_dur)
 
 				avg_speed_up 			+= speed_up
 				avg_num_cycles_saved 	+= cycles_saved
@@ -443,12 +453,12 @@ if __name__ == "__main__":
 					for tmask in scalarized_threads.keys():
 						print(f'{tmask:<32} | {scalarized_threads[tmask]}')
 					print(f'\nThread Scalarization:')
-					print("Thread Number | Number of Times Thread Scalarized")
-					print("-------------------------------------------------")
+					print("Thread Number | Number of Times Thread Scalarized | Average Divergence Duration")
+					print("-------------------------------------------------------------------------------")
 					for tid in range(len(per_thread_count)):
 						if per_thread_count[tid] > 0:
-							print(f'{tid:<4}          | {per_thread_count[tid]}')
-					print("******************************************")
+							print(f'{tid:<4}          | {per_thread_count[tid]:<4}                              | {average_div_dur[tid]:.1f}')
+					print("*******************************************************************************")
 
 			avg_speed_up 			/= num_warps
 			avg_num_cycles_saved 	/= num_warps
@@ -469,7 +479,7 @@ if __name__ == "__main__":
 				print(f'Saturating Counters: Theta={theta}, Capacity={capacity}, Thread Scalarization Bandwidth={num_scalar}')
 				print(f'Avg. Number of Cycles Saved:           {avg_num_cycles_saved}')
 				print(f'Avg. Percentage of Total Cycles Saved: {avg_pct_cycles_saved:.2f}')
-				print(f'Avg. Speed Up (%): 		       {avg_speed_up:.3f}')
+				print(f'Avg. Speed Up (%): 		       {(avg_speed_up-1)*100:.3f}')
 				print(f'Avg. Rel SIMD Eff:                     {avg_rel_simd_efficiency:.3f}')
 				print(f'Avg. Sim SIMD Eff:	               {avg_simd_efficiency:.3f}')
 				print(f'Avg. Percentage of Not SPLIT Div:      {avg_pct_non_split_div:.3f}')
@@ -483,6 +493,6 @@ if __name__ == "__main__":
 			progress = number_of_expirements_done / num_expirements
 			print(f"\rExpirement Progress: {progress*100:.0f}%", end="")
 
-
+	exit()
 	with open(results_file, "w") as f:
 		json.dump(expirement, f)
