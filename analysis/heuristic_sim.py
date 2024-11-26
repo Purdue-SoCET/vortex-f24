@@ -76,7 +76,7 @@ def find_reconv_tmask(idx, tmasks, tmask, tid, instrs, div_instrs):
 	return reconverge_tmask, is_split, div_instrs
 
 # Reconverges all threads whose reconvergence tmask matches the current tmask
-def reconverge(tmask, scalar_mask, reconverge_tmask):
+def reconverge(tmask, scalar_mask, reconverge_tmask, pred_count_en, pred_count, pred_cycles):
 	num_reconv = 0
 
 	for tid, scalarized in enumerate(scalar_mask):
@@ -84,6 +84,12 @@ def reconverge(tmask, scalar_mask, reconverge_tmask):
 			if(reconverge_tmask[tid] == tmask):
 				scalar_mask[tid] = 0
 				num_reconv += 1
+
+			elif(pred_count_en[tid] and pred_count[tid]>=pred_cycles):
+				scalar_mask[tid] 	= 0
+				pred_count[tid] 	= 0
+				pred_count_en[tid]	= 0
+				num_reconv 			+= 1
 	
 	return num_reconv
 
@@ -121,6 +127,8 @@ def and_scalar_mask(tmask, scalar_mask):
 # 5. num_scalar: Is the number of threads that the heuristic can send to the scalar core at any given cycle
 #
 # 6. scalarize_t0: True if we allow scalarization of thread 0 (typically the scheduler thread)
+#
+# 7. pred_cycles: Number of cycles to let scalarized thread live on scalar core if it was caused by PRED.N/TMC instruction
 
 # Outputs
 # 1. speed_up: Total Number of baseline vortex cycles / Simulated cycles with scalarization guided by the heuristic
@@ -143,7 +151,7 @@ def and_scalar_mask(tmask, scalar_mask):
 #
 # 10. div_instrs: Dictionary of instructions associated with a possible reconvergence tmask for a given thread. (e.g. want to scalarize a thread but the last tmask where it was active had instr PRED.N so we don't scalarize it but increment the PRED.N entry in the dictionary)
 
-def sat_counters(tmasks, instrs, scalarize_t0, theta=1000, num_threads=32, capacity=32, num_scalar=1):
+def sat_counters(tmasks, instrs, scalarize_t0, theta=200, num_threads=32, capacity=32, num_scalar=1, pred_cycles=100):
 	# Baseline number of cycles executed on vortex GPU
 	total_cycles         = len(tmasks)
 	sim_cycles			 = 0
@@ -170,6 +178,8 @@ def sat_counters(tmasks, instrs, scalarize_t0, theta=1000, num_threads=32, capac
 	
 	speed_up	 		 = 0
 	scalarized_threads 	 = {}
+	pred_count_en 		 = [0]*num_threads
+	pred_count 			 = [0]*num_threads
 	scalar_mask 		 = [0]*num_threads
 	per_thread_count     = [0]*num_threads
 	sat_counters		 = [0]*num_threads
@@ -177,16 +187,21 @@ def sat_counters(tmasks, instrs, scalarize_t0, theta=1000, num_threads=32, capac
 	
 	for idx, tmask in enumerate(tmasks):
 		if(check_tmasks):
-			check_tmasks_list.append(tmask)	
-		# Check if tmask is on the scalar core or not
+			check_tmasks_list.append(tmask)						
 
+		# Increment predicate counters for each thread with its pred_count_en bit hight
+		for idx, en in enumerate(pred_count_en):
+			if(en):
+				pred_count[idx] += 1
+
+		# Check if tmask is on the scalar core or not
 		tmask_on_simt, active_threads = and_scalar_mask(tmask, scalar_mask)
 		total_active_threads += active_threads
 
 		if tmask_on_simt == True:
 			## If not on the scalar cores
 
-			## Check if tmask count is in the range of numbers from 0-scalar_threads (T)
+			## Check if tmask count is in the range of numbers from 1-scalar_threads (T)
 			
 			tmask_vector = conv_str_to_list(tmask) # Turn tmask string into bit vector
 			acceptable_num_scalar = list(range(1,num_scalar+1))
@@ -229,12 +244,26 @@ def sat_counters(tmasks, instrs, scalarize_t0, theta=1000, num_threads=32, capac
 								scalar_mask[tid]		   = 1
 							
 							else:
-								failed_pred_scalarization += 1
+								sat_counters[tid] = 0
+								occupancy += 1
+								
+								if(occupancy > max_occupancy):
+									max_occupancy = occupancy
+
+								if tmask not in scalarized_threads.keys():
+									scalarized_threads[tmask] = 0
+
+								scalarized_threads[tmask] += 1
+								per_thread_count[tid]     += 1
+								scalar_mask[tid]		   = 1
+
+								pred_count_en[tid] 		   = 1
+								# failed_pred_scalarization += 1
 
 
 			## Check if the tmask is a reconvergence tmask for any of the threads
 			reconv_threads = 0 # Refers to the number of threads that have reconverged in this cycle
-			reconv_threads = reconverge(tmask, scalar_mask, reconverge_tmask)
+			reconv_threads = reconverge(tmask, scalar_mask, reconverge_tmask, pred_count_en, pred_count, pred_cycles)
 
 			occupancy -= reconv_threads
 			num_reconv += reconv_threads
@@ -245,6 +274,18 @@ def sat_counters(tmasks, instrs, scalarize_t0, theta=1000, num_threads=32, capac
 		## If on the scalar core don't increment sim cycles as it is running in parallel with the other tmasks
 		else:
 			pass
+
+	while(count_active_threads(pred_count_en) != 0):
+		for idx, en in enumerate(pred_count_en):
+			if(en):
+				pred_count[idx] += 1
+
+		reconv_threads = reconverge(tmask, scalar_mask, reconverge_tmask, pred_count_en, pred_count, pred_cycles)
+
+		occupancy -= reconv_threads
+		num_reconv += reconv_threads
+		
+		sim_cycles += 1
 
 	speed_up		= total_cycles/sim_cycles
 	cycles_saved 	= total_cycles - sim_cycles
@@ -335,154 +376,159 @@ if __name__ == "__main__":
 		print(instr_line)
 		print("Error opening the log file f'{source}")
 
-	thetas = range(10, 5000, 100)
+	thetas = range(10, 2000, 10)
 	num_scalars = range(1, 9)
-	capacity = 16
+	capacity    = 16
+	pred_cycles = range(100, 500, 100)
 	
 	expirement = {}
 	number_of_expirements_done = 0
 	progress = 0
-	num_expirements = len(thetas)*len(num_scalars)
+	num_expirements = len(thetas)*len(num_scalars)*len(pred_cycles)
 
 	print("Number of Expirements to be ran:", num_expirements)
 
 	for num_scalar in num_scalars:
 		for theta in thetas:
-			avg_speed_up = 0
-			avg_num_cycles_saved = 0
-			avg_pct_cycles_saved = 0
-			avg_rel_simd_efficiency = 0
-			avg_simd_efficiency = 0
-			avg_pct_non_split_div= 0
-			avg_max_ocp = 0
-			avg_pct_max_cap = 0
-			avg_num_scalarizations = 0
-			avg_num_reconvergences = 0
-			for warp_id in warps_to_probe:
+			for pred_cycle in pred_cycles:
 
-				tmask_profile = [0]*num_threads
+				avg_speed_up = 0
+				avg_num_cycles_saved = 0
+				avg_pct_cycles_saved = 0
+				avg_rel_simd_efficiency = 0
+				avg_simd_efficiency = 0
+				avg_pct_non_split_div= 0
+				avg_max_ocp = 0
+				avg_pct_max_cap = 0
+				avg_num_scalarizations = 0
+				avg_num_reconvergences = 0
 
-				total_active_threads = 0
+				for warp_id in warps_to_probe:
 
-				tmasks = warps_tmasks[warp_id]
-				instrs = warps_instrs[warp_id]
-				ids    = warps_ids[warp_id]
+					tmask_profile = [0]*num_threads
 
-				for tmask in tmasks:
-					tmask = conv_str_to_list(tmask)
-					num_act_threads = count_active_threads(tmask)
-					total_active_threads += num_act_threads
-					tmask_profile[num_act_threads-1] += 1
+					total_active_threads = 0
 
-				tmask_percentages = [num*100/len(tmasks) for num in tmask_profile]
-				rel_simd_efficiency  = total_active_threads*100 / (len(tmasks)*32)
+					tmasks = warps_tmasks[warp_id]
+					instrs = warps_instrs[warp_id]
+					ids    = warps_ids[warp_id]
 
-				if(number_of_expirements_done == 0):
-					print(f'\nWarp {warp_id} Statistics')
-					print("Number of Thread Masks Processed:", len(tmasks))
-					print("Thread Mask Profile")
-					print("Number of Active Threads | Percentage of Thread Masks")
-					print("-------------------------------------------------")
-					for thread_num, percent in enumerate(tmask_percentages):
-						if(percent > 0):
-							print(f'{thread_num+1:<4}                     | {percent:.2f}')
+					for tmask in tmasks:
+						tmask = conv_str_to_list(tmask)
+						num_act_threads = count_active_threads(tmask)
+						total_active_threads += num_act_threads
+						tmask_profile[num_act_threads-1] += 1
 
-				if(warp_id != "0"):
-					scalarize_t0 = 1
+					tmask_percentages = [num*100/len(tmasks) for num in tmask_profile]
+					rel_simd_efficiency  = total_active_threads*100 / (len(tmasks)*32)
 
-				else:
-					scalarize_t0 = 0
+					if(number_of_expirements_done == 0):
+						print(f'\nWarp {warp_id} Statistics')
+						print("Number of Thread Masks Processed:", len(tmasks))
+						print("Thread Mask Profile")
+						print("Number of Active Threads | Percentage of Thread Masks")
+						print("-------------------------------------------------")
+						for thread_num, percent in enumerate(tmask_percentages):
+							if(percent > 0):
+								print(f'{thread_num+1:<4}                     | {percent:.2f}')
 
-				speed_up, scalarized_threads, max_occupancy, num_reconv, cycles_saved, per_thread_count, simd_efficiency, frac_pred, frac_ocp_full, div_instrs = sat_counters(tmasks, instrs, scalarize_t0, theta=theta, num_threads=num_threads, capacity=capacity, num_scalar=num_scalar)
-				num_scalarizations = 0
+					if(warp_id != "0"):
+						scalarize_t0 = 1
 
-				for scalar_tmask in scalarized_threads.keys():
-					num_scalarizations += scalarized_threads[scalar_tmask]
+					else:
+						scalarize_t0 = 0
 
-				
-				warps_stats[warp_id].append(cycles_saved)
-				warps_stats[warp_id].append(speed_up)
-				warps_stats[warp_id].append(rel_simd_efficiency)
-				warps_stats[warp_id].append(simd_efficiency)
-				warps_stats[warp_id].append(frac_pred)
-				warps_stats[warp_id].append(frac_ocp_full)
-				warps_stats[warp_id].append(max_occupancy)
-				warps_stats[warp_id].append(num_scalarizations)
-				warps_stats[warp_id].append(num_reconv)
-				warps_stats[warp_id].append(scalarized_threads)
-				warps_stats[warp_id].append(per_thread_count)
-				warps_stats[warp_id].append(div_instrs)
+					speed_up, scalarized_threads, max_occupancy, num_reconv, cycles_saved, per_thread_count, simd_efficiency, frac_pred, frac_ocp_full, div_instrs = sat_counters(tmasks, instrs, scalarize_t0, theta=theta, num_threads=num_threads, capacity=capacity, num_scalar=num_scalar, pred_cycles=pred_cycle)
+					num_scalarizations = 0
 
-				avg_speed_up 			+= speed_up
-				avg_num_cycles_saved 	+= cycles_saved
-				avg_pct_cycles_saved 	+= cycles_saved*100/len(tmasks)
-				avg_rel_simd_efficiency += rel_simd_efficiency
-				avg_simd_efficiency 	+= simd_efficiency
-				avg_pct_non_split_div 	+= frac_pred*100
-				avg_max_ocp 			+= max_occupancy
-				avg_pct_max_cap 		+= frac_ocp_full*100
-				avg_num_scalarizations  += num_scalarizations
-				avg_num_reconvergences  += num_reconv
+					for scalar_tmask in scalarized_threads.keys():
+						num_scalarizations += scalarized_threads[scalar_tmask]
+
+					
+					warps_stats[warp_id].append(cycles_saved)
+					warps_stats[warp_id].append(speed_up)
+					warps_stats[warp_id].append(rel_simd_efficiency)
+					warps_stats[warp_id].append(simd_efficiency)
+					warps_stats[warp_id].append(frac_pred)
+					warps_stats[warp_id].append(frac_ocp_full)
+					warps_stats[warp_id].append(max_occupancy)
+					warps_stats[warp_id].append(num_scalarizations)
+					warps_stats[warp_id].append(num_reconv)
+					warps_stats[warp_id].append(scalarized_threads)
+					warps_stats[warp_id].append(per_thread_count)
+					warps_stats[warp_id].append(div_instrs)
+					warps_stats[warp_id].append(pred_cycle)
+
+					avg_speed_up 			+= speed_up
+					avg_num_cycles_saved 	+= cycles_saved
+					avg_pct_cycles_saved 	+= cycles_saved*100/len(tmasks)
+					avg_rel_simd_efficiency += rel_simd_efficiency
+					avg_simd_efficiency 	+= simd_efficiency
+					avg_pct_non_split_div 	+= frac_pred*100
+					avg_max_ocp 			+= max_occupancy
+					avg_pct_max_cap 		+= frac_ocp_full*100
+					avg_num_scalarizations  += num_scalarizations
+					avg_num_reconvergences  += num_reconv
+
+					if(number_of_expirements_done == 0):
+						print("\n******************************************")
+						print(f'Saturating Counters: Theta={theta}, Capacity={capacity}, Thread Scalarization Bandwidth={num_scalar}, Cycles for Predicate Reconvergence={pred_cycle}')
+						print(f'Number of Cycles Saved:           {cycles_saved}')
+						print(f'Percentage of Total Cycles Saved: {cycles_saved*100/len(tmasks):.2f}')
+						print(f'Speed Up (%): 		          {(speed_up-1)*100:.3f}')
+						print(f'Rel SIMD Eff:                     {rel_simd_efficiency:.3f}')
+						print(f'Sim SIMD Eff:	                  {simd_efficiency:.3f}')
+						print(f'Percentage of Not SPLIT Div:	  {frac_pred*100:.3f}')
+						print(f'Max Occupancy:		          {max_occupancy}')
+						print(f'Percentage of Max Capacity:	  {frac_ocp_full*100:.3f}')
+						print(f'Number of Scalarizations: 	  {num_scalarizations}')
+						print(f'Number of Reconvergences:         {num_reconv}')
+						print(f'\nScalarized Thread Masks:')
+						print("Thread Mask           	         | Number of Times Caused Scalarization")
+						print("------------------------------------------------------------------------")
+						for tmask in scalarized_threads.keys():
+							print(f'{tmask:<32} | {scalarized_threads[tmask]}')
+						print(f'\nThread Scalarization:')
+						print("Thread Number | Number of Times Thread Scalarized")
+						print("-------------------------------------------------")
+						for tid in range(len(per_thread_count)):
+							if per_thread_count[tid] > 0:
+								print(f'{tid:<4}          | {per_thread_count[tid]}')
+						print("******************************************")
+
+				avg_speed_up 			/= num_warps
+				avg_num_cycles_saved 	/= num_warps
+				avg_pct_cycles_saved 	/= num_warps
+				avg_rel_simd_efficiency /= num_warps
+				avg_simd_efficiency 	/= num_warps
+				avg_pct_non_split_div 	/= num_warps
+				avg_max_ocp 			/= num_warps
+				avg_pct_max_cap 	    /= num_warps
+				avg_num_scalarizations  /= num_warps
+				avg_num_reconvergences  /= num_warps
+
+				expirement[str((num_scalar,theta, pred_cycle))] = [num_scalar,theta,avg_num_cycles_saved,avg_pct_cycles_saved,avg_speed_up,avg_rel_simd_efficiency,avg_simd_efficiency,avg_pct_non_split_div,avg_max_ocp,avg_pct_max_cap,avg_num_scalarizations,avg_num_reconvergences, pred_cycle]
 
 				if(number_of_expirements_done == 0):
 					print("\n******************************************")
-					print(f'Saturating Counters: Theta={theta}, Capacity={capacity}, Thread Scalarization Bandwidth={num_scalar}')
-					print(f'Number of Cycles Saved:           {cycles_saved}')
-					print(f'Percentage of Total Cycles Saved: {cycles_saved*100/len(tmasks):.2f}')
-					print(f'Speed Up (%): 		          {(speed_up-1)*100:.3f}')
-					print(f'Rel SIMD Eff:                     {rel_simd_efficiency:.3f}')
-					print(f'Sim SIMD Eff:	                  {simd_efficiency:.3f}')
-					print(f'Percentage of Not SPLIT Div:	  {frac_pred*100:.3f}')
-					print(f'Max Occupancy:		          {max_occupancy}')
-					print(f'Percentage of Max Capacity:	  {frac_ocp_full*100:.3f}')
-					print(f'Number of Scalarizations: 	  {num_scalarizations}')
-					print(f'Number of Reconvergences:         {num_reconv}')
-					print(f'\nScalarized Thread Masks:')
-					print("Thread Mask           	         | Number of Times Caused Scalarization")
-					print("------------------------------------------------------------------------")
-					for tmask in scalarized_threads.keys():
-						print(f'{tmask:<32} | {scalarized_threads[tmask]}')
-					print(f'\nThread Scalarization:')
-					print("Thread Number | Number of Times Thread Scalarized")
-					print("-------------------------------------------------")
-					for tid in range(len(per_thread_count)):
-						if per_thread_count[tid] > 0:
-							print(f'{tid:<4}          | {per_thread_count[tid]}')
+					print("Core Wide Statistics")
+					print(f'Saturating Counters: \nTheta={theta} \nCapacity={capacity} \nThread Scalarization Bandwidth={num_scalar} \nCycles for Predicate Reconvergence={pred_cycle}')
+					print(f'Avg. Number of Cycles Saved:           {avg_num_cycles_saved}')
+					print(f'Avg. Percentage of Total Cycles Saved: {avg_pct_cycles_saved:.2f}')
+					print(f'Avg. Speed Up (%): 		       {avg_speed_up:.3f}')
+					print(f'Avg. Rel SIMD Eff:                     {avg_rel_simd_efficiency:.3f}')
+					print(f'Avg. Sim SIMD Eff:	               {avg_simd_efficiency:.3f}')
+					print(f'Avg. Percentage of Not SPLIT Div:      {avg_pct_non_split_div:.3f}')
+					print(f'Avg. Max Occupancy:		       {avg_max_ocp}')
+					print(f'Avg. Percentage of Max Capacity:       {avg_pct_max_cap:.3f}')
+					print(f'Avg. Number of Scalarizations: 	       {avg_num_scalarizations}')
+					print(f'Avg. Number of Reconvergences:         {avg_num_reconvergences}')
 					print("******************************************")
 
-			avg_speed_up 			/= num_warps
-			avg_num_cycles_saved 	/= num_warps
-			avg_pct_cycles_saved 	/= num_warps
-			avg_rel_simd_efficiency /= num_warps
-			avg_simd_efficiency 	/= num_warps
-			avg_pct_non_split_div 	/= num_warps
-			avg_max_ocp 			/= num_warps
-			avg_pct_max_cap 	    /= num_warps
-			avg_num_scalarizations  /= num_warps
-			avg_num_reconvergences  /= num_warps
+				number_of_expirements_done += 1
+				progress = number_of_expirements_done / num_expirements
+				print(f"\rExpirement Progress: {progress*100:.0f}%", end="")
 
-			expirement[str((num_scalar,theta))] = [num_scalar,theta,avg_num_cycles_saved,avg_pct_cycles_saved,avg_speed_up,avg_rel_simd_efficiency,avg_simd_efficiency,avg_pct_non_split_div,avg_max_ocp,avg_pct_max_cap,avg_num_scalarizations,avg_num_reconvergences]
-
-			if(number_of_expirements_done == 0):
-				print("\n******************************************")
-				print("Core Wide Statistics")
-				print(f'Saturating Counters: Theta={theta}, Capacity={capacity}, Thread Scalarization Bandwidth={num_scalar}')
-				print(f'Avg. Number of Cycles Saved:           {avg_num_cycles_saved}')
-				print(f'Avg. Percentage of Total Cycles Saved: {avg_pct_cycles_saved:.2f}')
-				print(f'Avg. Speed Up (%): 		       {avg_speed_up:.3f}')
-				print(f'Avg. Rel SIMD Eff:                     {avg_rel_simd_efficiency:.3f}')
-				print(f'Avg. Sim SIMD Eff:	               {avg_simd_efficiency:.3f}')
-				print(f'Avg. Percentage of Not SPLIT Div:      {avg_pct_non_split_div:.3f}')
-				print(f'Avg. Max Occupancy:		       {avg_max_ocp}')
-				print(f'Avg. Percentage of Max Capacity:       {avg_pct_max_cap:.3f}')
-				print(f'Avg. Number of Scalarizations: 	       {avg_num_scalarizations}')
-				print(f'Avg. Number of Reconvergences:         {avg_num_reconvergences}')
-				print("******************************************")
-
-			number_of_expirements_done += 1
-			progress = number_of_expirements_done / num_expirements
-			print(f"\rExpirement Progress: {progress*100:.0f}%", end="")
-
-
+	print("\n")
 	with open(results_file, "w") as f:
 		json.dump(expirement, f)
