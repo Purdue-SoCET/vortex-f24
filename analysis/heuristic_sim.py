@@ -376,10 +376,10 @@ if __name__ == "__main__":
 		print(instr_line)
 		print("Error opening the log file f'{source}")
 
-	thetas = range(10, 2000, 10)
+	thetas = range(10, 2000, 20)
 	num_scalars = range(1, 9)
 	capacity    = 16
-	pred_cycles = range(100, 500, 100)
+	pred_cycles = [5000]#range(100, 500, 100)
 	
 	expirement = {}
 	number_of_expirements_done = 0
@@ -515,7 +515,7 @@ if __name__ == "__main__":
 					print(f'Saturating Counters: \nTheta={theta} \nCapacity={capacity} \nThread Scalarization Bandwidth={num_scalar} \nCycles for Predicate Reconvergence={pred_cycle}')
 					print(f'Avg. Number of Cycles Saved:           {avg_num_cycles_saved}')
 					print(f'Avg. Percentage of Total Cycles Saved: {avg_pct_cycles_saved:.2f}')
-					print(f'Avg. Speed Up (%): 		       {avg_speed_up:.3f}')
+					print(f'Avg. Speed Up (%): 		       {(avg_speed_up-1)*100:.3f}')
 					print(f'Avg. Rel SIMD Eff:                     {avg_rel_simd_efficiency:.3f}')
 					print(f'Avg. Sim SIMD Eff:	               {avg_simd_efficiency:.3f}')
 					print(f'Avg. Percentage of Not SPLIT Div:      {avg_pct_non_split_div:.3f}')
