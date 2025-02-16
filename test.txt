@@ -1,2 +1,29 @@
-hello 
-testing git
+Num threads are in the files:
+
+Armaan: 
+
+VX_alu_int.sv
+VX_alu_muldiv.sv
+VX_alu_unit.sv
+VX_commit.sv
+VX_csr_data.sv
+VX_csr_unit.sv
+VX_decode.sv
+VX_dispatch_unit.sv
+VX_dispatch.sv
+VX_fetch.sv
+VX_fpu_unit.sv
+VX_gather_unit.sv
+
+Zohaib: 
+VX_gpr_slice.sv
+VX_ibuffer.sv
+VX_issue_slice.sv
+VX_issue_top.sv
+VX_lsu_slice.sv
+VX_operands.sv
+VX_schedule.sv
+VX_scoreboard.sv
+VX_sfu_unit.sv
+VX_split_join.sv
+VX_wctl_unit.sv
