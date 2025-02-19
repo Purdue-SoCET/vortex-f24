@@ -12,6 +12,7 @@
 // limitations under the License.
 
 `include "VX_define.vh"
+`include "VX_config.vh"
 
 module VX_commit import VX_gpu_pkg::*, VX_trace_pkg::*; #(
     parameter `STRING INSTANCE_ID = ""

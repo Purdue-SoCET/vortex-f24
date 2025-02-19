@@ -12,6 +12,7 @@
 // limitations under the License.
 
 `include "VX_define.vh"
+`include "VX_config.vh"
 
 module VX_csr_unit import VX_gpu_pkg::*; #(
     parameter `STRING INSTANCE_ID = "",

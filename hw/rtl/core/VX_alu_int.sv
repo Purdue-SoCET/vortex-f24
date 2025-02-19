@@ -12,6 +12,7 @@
 // limitations under the License.
 
 `include "VX_define.vh"
+`include "VX_config.vh"
 
 module VX_alu_int #(
     parameter `STRING INSTANCE_ID = "",

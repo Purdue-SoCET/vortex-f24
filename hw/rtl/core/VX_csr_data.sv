@@ -12,6 +12,7 @@
 // limitations under the License.
 
 `include "VX_define.vh"
+`include "VX_config.vh"
 
 `ifdef EXT_F_ENABLE
 `include "VX_fpu_define.vh"

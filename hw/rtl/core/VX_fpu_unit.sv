@@ -12,6 +12,7 @@
 // limitations under the License.
 
 `include "VX_fpu_define.vh"
+`include "VX_config.vh"
 
 module VX_fpu_unit import VX_fpu_pkg::*; #(
     parameter `STRING INSTANCE_ID = ""
