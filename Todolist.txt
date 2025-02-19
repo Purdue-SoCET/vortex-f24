@@ -1,8 +1,9 @@
 Github link : https://github.com/Purdue-SoCET/vortex-f24
 
+
 Param NUM_THREADS are in the files:
 
-Armaan: 
+Armaan: (Sudo apt not working on kanchan account, as using Red Hat Enterprise Linux (RHEL) 8.10 -> Fedora, working with yum,-> )
 
 VX_alu_int.sv
 VX_alu_muldiv.sv
