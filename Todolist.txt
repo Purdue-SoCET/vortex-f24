@@ -1,6 +1,6 @@
+Github link : https://github.com/Purdue-SoCET/vortex-f24
 
-
-Num threads are in the files:
+Param NUM_THREADS are in the files:
 
 Armaan: 
 
