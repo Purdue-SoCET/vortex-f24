@@ -15,7 +15,8 @@
 
 module VX_gpr_slice import VX_gpu_pkg::*; #(
     parameter CORE_ID = 0,
-    parameter CACHE_ENABLE = 0
+    parameter CACHE_ENABLE = 0,
+    parameter NUM_THREADS = 0
 ) (
     input wire              clk,
     input wire              reset,
