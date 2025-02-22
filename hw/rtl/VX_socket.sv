@@ -207,10 +207,12 @@ module VX_socket import VX_gpu_pkg::*; #(
     for (genvar core_id = 0; core_id < `SOCKET_SIZE; ++core_id) begin : cores
 
         `RESET_RELAY (core_reset, reset);
-
+//ask sooraj 2/21/25 
         VX_core #(
             .CORE_ID  ((SOCKET_ID * `SOCKET_SIZE) + core_id),
-            .INSTANCE_ID ($sformatf("%s-core%0d", INSTANCE_ID, core_id))
+            .INSTANCE_ID ($sformatf("%s-core%0d", INSTANCE_ID, core_id)),
+            .NUM_THREADS(NUM_THREADS), 
+            .NUM_WARPS(NUM_WARPS)
         ) core (
             `SCOPE_IO_BIND  (scope_core + core_id)
 

@@ -15,7 +15,9 @@
 
 module VX_sfu_unit import VX_gpu_pkg::*; #(
     parameter `STRING INSTANCE_ID = "",
-    parameter CORE_ID = 0
+    parameter CORE_ID = 0, 
+    parameter NUM_THREADS = 0, 
+    parameter NUM_WARPS = 0 
 ) (
     input wire              clk,
     input wire              reset,
@@ -85,7 +87,9 @@ module VX_sfu_unit import VX_gpu_pkg::*; #(
 
     VX_wctl_unit #(
         .INSTANCE_ID ($sformatf("%s-wctl", INSTANCE_ID)),
-        .NUM_LANES (NUM_LANES)
+        .NUM_LANES (NUM_LANES), 
+        .NUM_THREADS(NUM_THREADS), 
+        .NUM_WARPS(NUM_WARPS)
     ) wctl_unit (
         .clk        (clk),
         .reset      (wctl_reset),

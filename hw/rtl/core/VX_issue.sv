@@ -14,7 +14,8 @@
 `include "VX_define.vh"
 
 module VX_issue import VX_gpu_pkg::*; #(
-    parameter `STRING INSTANCE_ID = ""
+    parameter `STRING INSTANCE_ID = "", 
+    parameter NUM_THREADS = 0 
 ) (
     `SCOPE_IO_DECL
 
@@ -80,7 +81,8 @@ module VX_issue import VX_gpu_pkg::*; #(
 
         VX_issue_slice #(
             .INSTANCE_ID ($sformatf("%s%0d", INSTANCE_ID, issue_id)),
-            .ISSUE_ID (issue_id)
+            .ISSUE_ID (issue_id),
+            .NUM_THREADS(NUM_THREADS)
         ) issue_slice (
             `SCOPE_IO_BIND(issue_id)
             .clk          (clk),

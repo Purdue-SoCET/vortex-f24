@@ -19,7 +19,9 @@
 
 module VX_core import VX_gpu_pkg::*; #(
     parameter CORE_ID = 0,
-    parameter `STRING INSTANCE_ID = ""
+    parameter `STRING INSTANCE_ID = "", 
+    parameter NUM_THREADS = 0, 
+    parameter NUM_WARPS = 0 
 ) (
     `SCOPE_IO_DECL
 
@@ -96,6 +98,8 @@ module VX_core import VX_gpu_pkg::*; #(
 
     VX_schedule #(
         .INSTANCE_ID ($sformatf("%s-schedule", INSTANCE_ID)),
+        .NUM_THREADS(NUM_THREADS), 
+        .NUM_WARPS(NUM_WARPS), 
         .CORE_ID (CORE_ID)
     ) schedule (
         .clk            (clk),
@@ -144,7 +148,8 @@ module VX_core import VX_gpu_pkg::*; #(
     );
 
     VX_issue #(
-        .INSTANCE_ID ($sformatf("%s-issue", INSTANCE_ID))
+        .INSTANCE_ID ($sformatf("%s-issue", INSTANCE_ID)), 
+        .NUM_THREADS(NUM_THREADS)
     ) issue (
         `SCOPE_IO_BIND  (1)
 
@@ -162,7 +167,9 @@ module VX_core import VX_gpu_pkg::*; #(
 
     VX_execute #(
         .INSTANCE_ID ($sformatf("%s-execute", INSTANCE_ID)),
-        .CORE_ID (CORE_ID)
+        .CORE_ID (CORE_ID), 
+        .NUM_THREADS(NUM_THREADS), 
+        .NUM_WARPS(NUM_WARPS)
     ) execute (
         `SCOPE_IO_BIND  (2)
 

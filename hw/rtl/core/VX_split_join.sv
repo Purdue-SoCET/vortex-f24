@@ -14,7 +14,9 @@
 `include "VX_define.vh"
 
 module VX_split_join import VX_gpu_pkg::*; #(
-    parameter `STRING INSTANCE_ID = ""
+    parameter `STRING INSTANCE_ID = "", 
+    parameter NUM_THREADS = 0, 
+    parameter NUM_WARPS = 0 
 ) (
     input  wire                     clk,
     input  wire                     reset,

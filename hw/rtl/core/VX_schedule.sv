@@ -15,6 +15,8 @@
 
 module VX_schedule import VX_gpu_pkg::*; #(
     parameter `STRING INSTANCE_ID = "",
+    parameter NUM_THREADS = 0, 
+    parameter NUM_WARPS = 0, 
     parameter CORE_ID = 0
 ) (
     input wire              clk,
@@ -292,7 +294,9 @@ module VX_schedule import VX_gpu_pkg::*; #(
     `RESET_RELAY (split_join_reset, reset);
 
     VX_split_join #(
-        .INSTANCE_ID ($sformatf("%s-splitjoin", INSTANCE_ID))
+        .INSTANCE_ID ($sformatf("%s-splitjoin", INSTANCE_ID)), 
+        .NUM_THREADS(NUM_THREADS), 
+        .NUM_WARPS(NUM_WARPS)
     ) split_join (
         .clk        (clk),
         .reset      (split_join_reset),

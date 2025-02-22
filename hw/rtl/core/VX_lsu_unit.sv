@@ -14,7 +14,8 @@
 `include "VX_define.vh"
 
 module VX_lsu_unit import VX_gpu_pkg::*; #(
-    parameter `STRING INSTANCE_ID = ""
+    parameter `STRING INSTANCE_ID = "", 
+    parameter NUM_THREADS = 0 
 ) (
     `SCOPE_IO_DECL
 
@@ -59,7 +60,8 @@ module VX_lsu_unit import VX_gpu_pkg::*; #(
         `RESET_RELAY (slice_reset, reset);
 
         VX_lsu_slice #(
-            .INSTANCE_ID ($sformatf("%s%0d", INSTANCE_ID, block_idx))
+            .INSTANCE_ID ($sformatf("%s%0d", INSTANCE_ID, block_idx)), 
+            .NUM_THREADS(NUM_THREADS)
         ) lsu_slice(
             `SCOPE_IO_BIND  (block_idx)
             .clk        (clk),
@@ -73,7 +75,8 @@ module VX_lsu_unit import VX_gpu_pkg::*; #(
     VX_gather_unit #(
         .BLOCK_SIZE (BLOCK_SIZE),
         .NUM_LANES  (NUM_LANES),
-        .OUT_BUF    (3)
+        .OUT_BUF    (3), 
+        .NUM_THREADS(NUM_THREADS)
     ) gather_unit (
         .clk           (clk),
         .reset         (reset),

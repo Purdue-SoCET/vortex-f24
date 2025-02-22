@@ -14,7 +14,8 @@
 `include "VX_define.vh"
 
 module VX_lsu_slice import VX_gpu_pkg::*, VX_trace_pkg::*; #(
-    parameter `STRING INSTANCE_ID = ""
+    parameter `STRING INSTANCE_ID = "", 
+    parameter NUM_THREADS = 0 
 ) (
     `SCOPE_IO_DECL
 

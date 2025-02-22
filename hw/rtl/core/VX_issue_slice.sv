@@ -16,6 +16,7 @@
 module VX_issue_slice import VX_gpu_pkg::*, VX_trace_pkg::*; #(
     parameter `STRING INSTANCE_ID = "",
     parameter ISSUE_ID = 0
+    parameter NUM_THREADS = 0
 ) (
     `SCOPE_IO_DECL
 
@@ -42,7 +43,8 @@ module VX_issue_slice import VX_gpu_pkg::*, VX_trace_pkg::*; #(
     `RESET_RELAY (dispatch_reset, reset);
 
     VX_ibuffer #(
-        .INSTANCE_ID ($sformatf("%s-ibuffer", INSTANCE_ID))
+        .INSTANCE_ID ($sformatf("%s-ibuffer", INSTANCE_ID)), 
+        .NUM_THREADS(NUM_THREADS)
     ) ibuffer (
         .clk            (clk),
         .reset          (ibuf_reset),
@@ -54,7 +56,8 @@ module VX_issue_slice import VX_gpu_pkg::*, VX_trace_pkg::*; #(
     );
 
     VX_scoreboard #(
-        .INSTANCE_ID ($sformatf("%s-scoreboard", INSTANCE_ID))
+        .INSTANCE_ID ($sformatf("%s-scoreboard", INSTANCE_ID)), 
+        .NUM_THREADS(NUM_THREADS)
     ) scoreboard (
         .clk            (clk),
         .reset          (scoreboard_reset),
@@ -70,6 +73,7 @@ module VX_issue_slice import VX_gpu_pkg::*, VX_trace_pkg::*; #(
 
     VX_operands #(
         .INSTANCE_ID ($sformatf("%s-operands", INSTANCE_ID))
+        .NUM_THREADS(NUM_THREADS)
     ) operands (
         .clk            (clk),
         .reset          (operands_reset),

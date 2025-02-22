@@ -15,7 +15,9 @@
 
 module VX_execute import VX_gpu_pkg::*; #(
     parameter `STRING INSTANCE_ID = "",
-    parameter CORE_ID = 0
+    parameter CORE_ID = 0, 
+    parameter NUM_THREADS = 0,
+    parameter NUM_WARPS = 0 
 ) (
     `SCOPE_IO_DECL
 
@@ -68,7 +70,8 @@ module VX_execute import VX_gpu_pkg::*; #(
     `SCOPE_IO_SWITCH (1)
 
     VX_lsu_unit #(
-        .INSTANCE_ID ($sformatf("%s-lsu", INSTANCE_ID))
+        .INSTANCE_ID ($sformatf("%s-lsu", INSTANCE_ID)), 
+        .NUM_THREADS(NUM_THREADS)
     ) lsu_unit (
         `SCOPE_IO_BIND  (0)
         .clk            (clk),
@@ -94,7 +97,9 @@ module VX_execute import VX_gpu_pkg::*; #(
 
     VX_sfu_unit #(
         .INSTANCE_ID ($sformatf("%s-sfu", INSTANCE_ID)),
-        .CORE_ID (CORE_ID)
+        .CORE_ID (CORE_ID), 
+        .NUM_THREADS(NUM_THREADS), 
+        .NUM_WARPS(NUM_WARPS)
     ) sfu_unit (
         .clk            (clk),
         .reset          (sfu_reset),

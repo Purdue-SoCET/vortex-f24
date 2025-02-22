@@ -14,7 +14,8 @@
 `include "VX_define.vh"
 
 module VX_issue_top import VX_gpu_pkg::*; #(
-    parameter `STRING INSTANCE_ID = "issue"
+    parameter `STRING INSTANCE_ID = "issue", 
+    parameter NUM_THREADS = 0 
 ) (
     // Clock
     input wire                              clk,
@@ -114,7 +115,9 @@ module VX_issue_top import VX_gpu_pkg::*; #(
 `endif
 
     VX_issue #(
-        .INSTANCE_ID (INSTANCE_ID)
+        .INSTANCE_ID (INSTANCE_ID),
+        .NUM_THREADS(NUM_THREADS)
+
     ) issue (
         `SCOPE_IO_BIND (0)
         .clk            (clk),
