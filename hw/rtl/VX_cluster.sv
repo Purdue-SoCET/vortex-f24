@@ -15,7 +15,9 @@
 
 module VX_cluster import VX_gpu_pkg::*; #(
     parameter CLUSTER_ID = 0,
-    parameter `STRING INSTANCE_ID = ""
+    parameter `STRING INSTANCE_ID = "", 
+    parameter NUM_THREADS = 0, 
+    parameter NUM_WARPS = 0 
 ) (
     `SCOPE_IO_DECL
 
@@ -135,7 +137,9 @@ module VX_cluster import VX_gpu_pkg::*; #(
 
         VX_socket #(
             .SOCKET_ID ((CLUSTER_ID * `NUM_SOCKETS) + socket_id),
-            .INSTANCE_ID ($sformatf("%s-socket%0d", INSTANCE_ID, socket_id))
+            .INSTANCE_ID ($sformatf("%s-socket%0d", INSTANCE_ID, socket_id)), 
+            .NUM_THREADS(NUM_THREADS), 
+            .NUM_WARPS(NUM_WARPS)
         ) socket (
             `SCOPE_IO_BIND  (scope_socket+socket_id)
 

@@ -138,7 +138,9 @@ module Vortex import VX_gpu_pkg::*; (
 
         VX_cluster #(
             .CLUSTER_ID (cluster_id),
-            .INSTANCE_ID ($sformatf("cluster%0d", cluster_id))
+            .INSTANCE_ID ($sformatf("cluster%0d", cluster_id)), 
+            .NUM_THREADS(NUM_THREADS), 
+            .NUM_WARPS(NUM_WARPS)
         ) cluster (
             `SCOPE_IO_BIND (scope_cluster + cluster_id)
 

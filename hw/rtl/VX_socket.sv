@@ -15,7 +15,9 @@
 
 module VX_socket import VX_gpu_pkg::*; #(
     parameter SOCKET_ID = 0,
-    parameter `STRING INSTANCE_ID = ""
+    parameter `STRING INSTANCE_ID = "",
+    parameter NUM_THREADS = 0, 
+    parameter NUM_WARPS = 0 
 ) (
     `SCOPE_IO_DECL
 
