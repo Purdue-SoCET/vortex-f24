@@ -15,7 +15,7 @@
 
 module VX_lsu_slice import VX_gpu_pkg::*, VX_trace_pkg::*; #(
     parameter `STRING INSTANCE_ID = "", 
-    parameter NUM_THREADS = 0 
+    parameter NUM_THREADS = 4
 ) (
     `SCOPE_IO_DECL
 

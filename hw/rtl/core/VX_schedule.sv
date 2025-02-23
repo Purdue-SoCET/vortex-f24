@@ -15,8 +15,8 @@
 
 module VX_schedule import VX_gpu_pkg::*; #(
     parameter `STRING INSTANCE_ID = "",
-    parameter NUM_THREADS = 0, 
-    parameter NUM_WARPS = 0, 
+    parameter NUM_THREADS = 4, 
+    parameter NUM_WARPS = 4, 
     parameter CORE_ID = 0
 ) (
     input wire              clk,

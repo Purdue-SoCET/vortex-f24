@@ -15,7 +15,7 @@
 
 module VX_issue_top import VX_gpu_pkg::*; #(
     parameter `STRING INSTANCE_ID = "issue", 
-    parameter NUM_THREADS = 0 
+    parameter NUM_THREADS = 4
 ) (
     // Clock
     input wire                              clk,

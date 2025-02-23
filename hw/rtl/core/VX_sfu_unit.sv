@@ -16,8 +16,8 @@
 module VX_sfu_unit import VX_gpu_pkg::*; #(
     parameter `STRING INSTANCE_ID = "",
     parameter CORE_ID = 0, 
-    parameter NUM_THREADS = 0, 
-    parameter NUM_WARPS = 0 
+    parameter NUM_THREADS = 4, 
+    parameter NUM_WARPS = 4 
 ) (
     input wire              clk,
     input wire              reset,

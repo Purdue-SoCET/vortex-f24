@@ -15,7 +15,7 @@
 
 module VX_issue import VX_gpu_pkg::*; #(
     parameter `STRING INSTANCE_ID = "", 
-    parameter NUM_THREADS = 0 
+    parameter NUM_THREADS = 4 
 ) (
     `SCOPE_IO_DECL
 

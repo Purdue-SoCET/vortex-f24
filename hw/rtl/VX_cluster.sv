@@ -16,8 +16,8 @@
 module VX_cluster import VX_gpu_pkg::*; #(
     parameter CLUSTER_ID = 0,
     parameter `STRING INSTANCE_ID = "", 
-    parameter NUM_THREADS = 0, 
-    parameter NUM_WARPS = 0 
+    parameter NUM_THREADS = 4, 
+    parameter NUM_WARPS = 4 
 ) (
     `SCOPE_IO_DECL
 

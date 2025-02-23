@@ -15,7 +15,7 @@
 
 module VX_scoreboard import VX_gpu_pkg::*; #(
     parameter `STRING INSTANCE_ID = "", 
-    parameter NUM_THREADS = 0 
+    parameter NUM_THREADS = 4 
 ) (
     input wire              clk,
     input wire              reset,
