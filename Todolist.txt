@@ -1,4 +1,4 @@
-Github link : https://github.com/Purdue-SoCET/vortex-f24
+Github link : https://github.com/Purdue-SoCET/vortexS25/
 
 
 Param NUM_THREADS are in the files:
